@@ -24,6 +24,7 @@
 </header>
 <main id="app"><p class="muted center">Loading…</p></main>
 
+<div id="dock-meta" hidden></div>
 <div id="dock" hidden>
   <div class="dock-time">
     <button class="icon" id="pause" type="button" aria-label="Pause">❚❚</button>
@@ -56,6 +57,7 @@
     <form class="composer" id="ai-form">
       <textarea id="ai-input" rows="1" placeholder="Ask about this question…" enterkeyhint="send"></textarea>
       <div class="composer-row">
+        <button class="mic" id="ai-mic" type="button" title="Dictate" aria-label="Dictate" hidden><svg class="ic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3M9 21h6"/></svg></button>
         <span class="composer-model" id="ai-model"></span>
         <button class="send" id="ai-send" type="submit" aria-label="Send" disabled><svg class="ic" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></svg></button>
       </div>

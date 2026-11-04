@@ -103,6 +103,7 @@ const ICON_PATHS = {
   VARC: '<path d="M3.5 5.5c2.8-1.3 5.7-1.3 8.5 0v13.5c-2.8-1.3-5.7-1.3-8.5 0z"/><path d="M20.5 5.5c-2.8-1.3-5.7-1.3-8.5 0v13.5c2.8-1.3 5.7-1.3 8.5 0z"/>',
   settings: '<path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/>',
   arrow: '<path d="M5 12h14M13 6l6 6-6 6"/>',
+  chev: '<path d="M14.5 5.5L8 12l6.5 6.5"/>',
   play: '<path d="M9 6.5v11l9-5.5z" fill="currentColor" stroke="none"/>',
   attempted: '<circle cx="12" cy="12" r="8.5"/><path d="M8.5 12.3l2.4 2.4 4.6-4.9"/>',
   accuracy: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" fill="currentColor"/>',
@@ -126,12 +127,13 @@ function route() {
   const h = location.hash || '#/';
   const m = h.match(/^#\/(ch|q|sec)\/([^/?]+)/);
   S.routeSec = (h.match(/[?&]sec=(QA|DILR|VARC)/) || [])[1] || null;
+  if (m && m[1] === 'q' && !S.byId.has(m[2])) { location.hash = '#/'; return; }
   const isQ = !!(m && m[1] === 'q');
   const navKey = h.startsWith('#/settings') ? 'settings' : m && m[1] === 'sec' ? m[2] : m ? chapter(m[1] === 'q' ? S.byId.get(m[2]).ch : m[2]).section : 'home';
   document.querySelectorAll('#nav a').forEach(a => a.classList.toggle('on', a.dataset.nav === navKey));
   document.body.classList.toggle('wide', isQ);
   document.body.classList.toggle('has-dock', isQ);
-  $('#dock').hidden = !isQ;
+  $('#dock').hidden = !isQ; $('#dock-meta').hidden = !isQ;
   $('#ai-toggle').hidden = !isQ;
   if (!isQ) closePanel(true);
   if (h.startsWith('#/settings')) renderSettings();
@@ -164,7 +166,7 @@ function renderDashboard() {
   }
   app().innerHTML = html;
 }
-const backBtn = (href, label) => `<a class="backbtn" href="${href}" title="Back to ${esc(label)}">${icon('arrow')}<span>${esc(label)}</span></a>`;
+const backBtn = (href, label) => `<a class="backbtn" href="${href}" title="Back to ${esc(label)}"><span class="bb">${icon('chev')}</span><span>${esc(label)}</span></a>`;
 function metricsHTML(st, t) {
   const graded = st.correct + st.wrong;
   const acc = graded ? Math.round(100 * st.correct / graded) : null;
@@ -319,13 +321,9 @@ function renderUnit(qid) {
 
   const isPaper = c.section === 'PAPERS';
   const note = u.note && S.data.directions[u.note];
-  const qLabel = u.qs.length > 1 ? `Q${first.n}–${u.qs[u.qs.length - 1].n}` : `Q${first.n}`;
   const pos = isPaper ? ` · ${u.list.slice(0, u.i).reduce((n, x) => n + x.qs.length, 0) + 1}${u.qs.length > 1 ? '–' + (u.list.slice(0, u.i + 1).reduce((n, x) => n + x.qs.length, 0)) : ''} of ${S.chapterQs.get(c.id).length}` : '';
-  app().innerHTML = `<div class="umeta">
-    <span class="row-left">${backBtn(isPaper ? '#/sec/PAPERS' : '#/ch/' + c.id, c.title)}
-      <span class="meta-line"><b>${isPaper ? esc(S.data.sections[first.sec] || first.sec) : (first.year ? 'CAT ' + first.year : 'year not stated')}</b> · ${qLabel}${pos} · ${types.map(t => t === 'MCQ' ? 'MCQ' : 'TITA').join(' + ')} · <span class="${neg ? 'neg' : 'noneg'}">${neg ? '+3 / −1' : '+3 / no negative'}</span>${first.sub ? ' · ' + esc(first.sub) : ''}</span>
-    </span>
-  </div>
+  $('#dock-meta').innerHTML = `<b>${isPaper ? ({ QA: 'Quant', DILR: 'DILR', VARC: 'VARC' }[first.sec] || first.sec) : (first.year ? 'CAT ' + first.year : 'year not stated')}</b>${pos} · ${types.map(t => t === 'MCQ' ? 'MCQ' : 'TITA').join(' + ')} · <span class="${neg ? 'neg' : 'noneg'}">${neg ? '+3 / −1' : '+3 / no negative'}</span>`;
+  app().innerHTML = `<div class="umeta ${d ? '' : 'single'}">${backBtn(isPaper ? '#/sec/PAPERS' : '#/ch/' + c.id, c.title)}</div>
   ${note ? `<div class="note-dir">${useText() && note.tx ? esc(note.tx.map(b => b.text || '').join(' ')) : crops(note.rects, 1.4)}</div>` : ''}
   <div class="unit ${d ? 'has-ctx' : ''}">
     ${d ? `<div class="context">${useText() && d.tx ? blocksHTML(d.tx) : crops(d.rects, 1.6)}</div>` : ''}
@@ -596,6 +594,7 @@ function initPanel() {
   $('#ai-new').onclick = () => { const q = panelQ(); if (!q || AI.busy) return; delete S.chats[q.id]; panelFor(q); ta.focus(); };
   $('#ai-form').onsubmit = e => { e.preventDefault(); if (AI.busy) { AI.ctrl && AI.ctrl.abort(); return; } const q = panelQ(); if (q) askAI(q, 'ask'); };
   ta.oninput = () => { growInput(); syncSend(); };
+  initMic(ta);
   ta.onkeydown = e => {
     if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && window.matchMedia('(hover: hover)').matches) { e.preventDefault(); $('#ai-form').requestSubmit(); }
     if (e.key === 'Escape') closePanel();
@@ -608,6 +607,27 @@ function initPanel() {
     const move = ev => { const w = Math.min(720, Math.max(340, window.innerWidth - ev.clientX)); document.documentElement.style.setProperty('--panel-w', w + 'px'); S.settings.panelW = w; };
     const up = () => { handle.removeEventListener('pointermove', move); handle.removeEventListener('pointerup', up); saveSettings(); };
     handle.addEventListener('pointermove', move); handle.addEventListener('pointerup', up);
+  };
+}
+function initMic(ta) {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const btn = $('#ai-mic');
+  if (!SR) return;
+  btn.hidden = false;
+  let rec = null, base = '';
+  const stop = () => { if (rec) { rec.onend = null; rec.stop(); rec = null; } btn.classList.remove('on'); };
+  btn.onclick = () => {
+    if (rec) return stop();
+    rec = new SR(); rec.lang = 'en-IN'; rec.interimResults = true; rec.continuous = true;
+    base = ta.value.trim(); base = base ? base + ' ' : '';
+    rec.onresult = e => {
+      let done = '', interim = '';
+      for (const r of e.results) (r.isFinal ? (done += r[0].transcript + ' ') : (interim += r[0].transcript));
+      ta.value = base + done + interim; growInput(); syncSend();
+      if (done) base += done;
+    };
+    rec.onerror = stop; rec.onend = stop;
+    rec.start(); btn.classList.add('on'); ta.focus();
   };
 }
 function growInput() { const ta = $('#ai-input'); ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight, 180) + 'px'; }

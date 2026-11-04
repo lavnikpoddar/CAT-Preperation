@@ -9,7 +9,7 @@ import re
 import statistics
 
 MATH_CHARS = re.compile(r"[-∀-⋿←-⇿²³¹⁰-₟√∫∑∏∈∉≤≥≠±÷×]")
-MARKER = re.compile(r"^(\d{1,3}\)|\([a-e]\))$")
+MARKER = re.compile(r"^(\d{1,3}[.)]|\([a-e]\)|Ê)$")
 LIST_START = re.compile(r"^([A-Z]|[ivx]+|\d{1,2})[.)]$")
 PUNCT = re.compile(r"^[\W_]+$")
 YEAR_TAG = re.compile(r"\s*\(\s*(?:19|20)\d\d\s*\)")
@@ -67,6 +67,8 @@ def looks_prose(lines, why=None):
     hmed = statistics.median(w[3] - w[1] for w in body)
     for w in body:
         h = w[3] - w[1]
+        if re.fullmatch(r"\d{1,2}[.)]|\([a-e]\)|[A-E]\.", w[4]):
+            continue                                  # list markers set in a smaller face
         if h < 0.76 * hmed and len(w[4]) <= 6:      # super/subscript-sized token
             return fail(f"small token {w[4]!r} h={h:.1f} med={hmed:.1f}")
     flat = " ".join(w[4] for ln in lines for w in ln["words"])
@@ -93,8 +95,15 @@ def paragraphs(lines, strip_marker=False):
     paras, cur = [], []
     for i, ln in enumerate(lines):
         words = [w[4] for w in ln["words"]]
-        if i == 0 and strip_marker and words and MARKER.match(words[0]):
-            words = words[1:]
+        if i == 0 and strip_marker and words:
+            if re.fullmatch(r"\([a-e]\)", words[0]):
+                words = words[1:]                         # option label "(a)"
+            else:
+                for _ in range(2):                        # "Ê", "12.", "12)" – keep a following "(c)" (the answer)
+                    if words and re.fullmatch(r"Ê|\d{1,3}[.)]", words[0]):
+                        words = words[1:]
+                    else:
+                        break
         text = " ".join(words).strip()
         if not text:
             continue

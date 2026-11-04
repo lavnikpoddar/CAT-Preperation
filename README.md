@@ -47,4 +47,11 @@ python3 tools/extract.py chapters.xml data/questions.json --pages pages --drawin
 
 Answer keys come from the "Hints & Solutions" entries that start with an option letter; TITA questions and a few MCQs whose solution does not start with the letter have no key, and the app asks you to mark those yourself against the solution.
 
-Not yet covered: the three full solved papers (CAT 2017–2019) and the three practice sets at the front and back of the book.
+The three full solved papers at the front of the book (CAT 2017, 2018, 2019) are extracted by `tools/papers.py` into chapters `p2017`–`p2019` (section PAPERS); their questions carry an exam section (VARC / DILR / QA) and count towards those sections' figures. Not covered: the three practice sets at the back of the book, and papers after 2019, which are not in the book.
+
+```bash
+pdftotext -bbox-layout -f 16 -l 88 "Face to Face CAT Topicwise Solved Papers.pdf" papers.xml
+pdftoppm -r 150 -gray -f 16 -l 88 -png "Face to Face CAT Topicwise Solved Papers.pdf" pages/p
+python3 tools/drawings.py "Face to Face CAT Topicwise Solved Papers.pdf" drawings_papers.json 16 88
+python3 tools/papers.py papers.xml data/questions.json --pages pages --drawings drawings_papers.json
+```

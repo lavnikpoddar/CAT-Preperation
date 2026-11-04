@@ -148,6 +148,9 @@ def split_options(rects, words_by_page, meta_by_page, ink_by_page):
         if 0 < lt - bt <= 10 and not any(abs(lt2 - bt) < 2 for lt2, _, _ in metas if lt2 != lt):
             top = bt - 1
         tops.append(top)
+    if ink_by_page:
+        ri0 = order[0][0]
+        tops[0] = snap_gap(ink_by_page, rects[ri0][0], rects[ri0][1], rects[ri0][3], tops[0])
     rows = []  # [ri, top, [idx, ...]]
     for i, ((ri, w), top) in enumerate(zip(order, tops)):
         if rows and rows[-1][0] == ri and abs(top - rows[-1][1]) <= 4:
@@ -224,9 +227,13 @@ def block_box(blk):
             max(w[2] for w in ws), max(w[3] for w in ws))
 
 
-def compute_layout(blocks):
+def compute_layout(blocks, split_tail=False, page_full_rule=True):
     """Return (gutter_x, zones). Zones split the page body vertically into
-    alternating full-width and two-column zones: list of {top, bot, full}."""
+    alternating full-width and two-column zones: list of {top, bot, full}.
+    With split_tail, a page that reads as single-column overall still gets
+    a two-column zone at its top or bottom when a tall stretch there has no
+    line crossing the gutter (solved papers: full-width passage, then
+    two-column questions)."""
     words = page_words(blocks)
     if not words:
         return CENTER, []
@@ -246,8 +253,20 @@ def compute_layout(blocks):
     n_lines = sum(len(b) for b in blocks if in_body(b[0][0]))
     n_cross_lines = sum(len(b) for b in blocks if in_body(b[0][0])
                         and block_box(b) in crossing)
-    if n_cross_lines >= 3 and n_cross_lines >= 0.25 * n_lines:
+    if page_full_rule and n_cross_lines >= 3 and n_cross_lines >= 0.25 * n_lines:
         # single-column (full-width) page layout
+        if split_tail and crossing:
+            c_top = min(b[1] for b in crossing) - 1.5
+            c_bot = max(b[3] for b in crossing) + 1.5
+            both = lambda y0, y1: (any(w[0] < gutter - 20 and y0 <= w[1] <= y1 for w in words)
+                                   and any(w[0] > gutter + 10 and y0 <= w[1] <= y1 for w in words))
+            zones = []
+            if c_top - top > 120 and both(top, c_top):
+                zones.append({"top": top, "bot": c_top, "full": False})
+            zones.append({"top": zones[-1]["bot"] if zones else top, "bot": c_bot if bot - c_bot > 120 and both(c_bot, bot) else bot, "full": True})
+            if zones[-1]["bot"] < bot:
+                zones.append({"top": c_bot, "bot": bot, "full": False})
+            return gutter, zones
         return gutter, [{"top": top, "bot": bot, "full": True}]
     ivs = sorted((b[1], b[3]) for b in crossing)
     merged = []

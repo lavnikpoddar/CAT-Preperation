@@ -433,3 +433,6 @@ body.ambient .row:hover { background: var(--glass); }
 @media (max-width: 860px) {
   body.has-dock #music { bottom: 84px; left: 12px; }
 }
+
+.rowhead { font-size: 12px; color: var(--muted); padding: 18px 2px 6px; }
+.rowhead:first-child { padding-top: 6px; }

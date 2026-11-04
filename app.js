@@ -28,7 +28,10 @@ const app = () => $('#app');
 /* ---------- data ---------- */
 async function init() {
   S.data = await (await fetch(DATA_URL)).json();
+  if (S.data.chapters.some(c => c.section === 'PAPERS')) S.data.sections.PAPERS = 'Full papers';
+  const secOf = {}; S.data.chapters.forEach(c => { secOf[c.id] = c.section; });
   for (const q of S.data.questions) {
+    if (!q.sec) q.sec = secOf[q.ch];
     S.byId.set(q.id, q);
     if (!S.chapterQs.has(q.ch)) S.chapterQs.set(q.ch, []);
     S.chapterQs.get(q.ch).push(q);
@@ -95,6 +98,7 @@ const ICON_PATHS = {
   score: '<path d="M4 16.5l5-5 3.5 3.5L20 7.5"/><path d="M15 7.5h5v5"/>',
   time: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
   flag: '<path d="M6 21V4"/><path d="M6 4.5h11l-2 4 2 4H6"/>',
+  PAPERS: '<path d="M7 3.5h7l4 4V20a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1z"/><path d="M14 3.5v4h4"/><path d="M9 12h6M9 16h6"/>',
 };
 const icon = (name, cls = '') => `<svg class="ic ${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICON_PATHS[name] || ''}</svg>`;
 function ring(st) {
@@ -110,6 +114,7 @@ function route() {
   S.unit = null; S.picks = {};
   const h = location.hash || '#/';
   const m = h.match(/^#\/(ch|q|sec)\/([^/?]+)/);
+  S.routeSec = (h.match(/[?&]sec=(QA|DILR|VARC)/) || [])[1] || null;
   const isQ = !!(m && m[1] === 'q');
   const navKey = h.startsWith('#/settings') ? 'settings' : m && m[1] === 'sec' ? m[2] : m ? chapter(m[1] === 'q' ? S.byId.get(m[2]).ch : m[2]).section : 'home';
   document.querySelectorAll('#nav a').forEach(a => a.classList.toggle('on', a.dataset.nav === navKey));
@@ -139,8 +144,8 @@ function renderDashboard() {
     ${last ? `<a class="resume" href="#/q/${last.id}"><span class="play">${icon('play')}</span><span class="rt"><small>Resume</small>${esc(chapter(last.ch).title)} · Q${last.n}</span></a>` : ''}
   </div>`;
   for (const [sec, name] of Object.entries(S.data.sections)) {
-    const chs = S.data.chapters.filter(c => c.section === sec);
-    const st = stats(chs.flatMap(c => S.chapterQs.get(c.id) || []));
+    if (sec === 'PAPERS') continue;
+    const st = stats(S.data.questions.filter(q => q.sec === sec));
     html += `<a class="secbox" href="#/sec/${sec}" title="Open ${esc(name)}">
       <div class="secbox-head"><span class="sh"><span class="badge-ic">${icon(sec)}</span><span class="full">${esc(name)}</span><span class="short">${{ QA: 'Quant', DILR: 'DILR', VARC: 'VARC' }[sec]}</span></span><span class="go">${icon('arrow')}</span></div>
       ${metricsHTML(st, TARGETS[sec])}
@@ -172,13 +177,25 @@ function metricsHTML(st, t) {
 function renderSection(sec) {
   const name = S.data.sections[sec]; if (!name) return renderDashboard();
   const chs = S.data.chapters.filter(c => c.section === sec);
-  const ss = stats(chs.flatMap(c => S.chapterQs.get(c.id) || []));
-  let html = `<div><h1 class="with-ic"><span class="badge-ic lg">${icon(sec)}</span>${esc(name)}</h1><p class="lead">${ss.total} questions · ${ss.attempted} attempted${accuracy(ss) ? ' · ' + accuracy(ss) : ''}${ss.time ? ' · ' + fmtTime(ss.time) : ''}</p><div class="rows" style="margin-top:18px">`;
-  for (const c of chs) {
-    const cs = stats(S.chapterQs.get(c.id) || []);
-    html += `<a class="row crow" href="#/ch/${c.id}"><span class="n">${c.num}</span><span class="t">${esc(c.title)}</span><span class="prog">${ring(cs)}<span>${cs.attempted}<i> / ${cs.total}</i></span></span></a>`;
+  const papers = S.data.chapters.filter(c => c.section === 'PAPERS');
+  const ss = stats(sec === 'PAPERS' ? S.data.questions.filter(q => q.ch.startsWith('p')) : S.data.questions.filter(q => q.sec === sec));
+  let html = `<div><h1 class="with-ic"><span class="badge-ic lg">${icon(sec)}</span>${esc(name)}</h1><p class="lead">${ss.total} questions · ${ss.attempted} attempted${accuracy(ss) ? ' · ' + accuracy(ss) : ''}${ss.time ? ' · ' + fmtTime(ss.time) : ''}</p>`;
+  const row = (c, label, qs, href) => { const cs = stats(qs); return `<a class="row crow" href="${href}"><span class="n">${label}</span><span class="t">${esc(c.title)}</span><span class="prog">${ring(cs)}<span>${cs.attempted}<i> / ${cs.total}</i></span></span></a>`; };
+  if (sec === 'PAPERS') {
+    html += `<p class="lead" style="margin-top:4px">Full papers from the book, solved. Their questions also count towards the Quant, DILR and VARC figures.</p><div class="rows" style="margin-top:18px">`;
+    for (const c of papers) html += row(c, '', S.chapterQs.get(c.id) || [], `#/ch/${c.id}`);
+    html += '</div>';
+  } else {
+    html += `<div class="rows" style="margin-top:18px">`;
+    for (const c of chs) html += row(c, c.num, S.chapterQs.get(c.id) || [], `#/ch/${c.id}`);
+    html += '</div>';
+    if (papers.length) {
+      html += `<h2>From full papers</h2><div class="rows">`;
+      for (const c of papers) html += row(c, '', (S.chapterQs.get(c.id) || []).filter(q => q.sec === sec), `#/ch/${c.id}?sec=${sec}`);
+      html += '</div>';
+    }
   }
-  app().innerHTML = html + '</div></div>';
+  app().innerHTML = html + '</div>';
 }
 
 /* ---------- chapter ---------- */
@@ -194,17 +211,19 @@ function pill(attr, value, def, options) {
 function renderChapter(chId) {
   const c = chapter(chId); if (!c) return renderDashboard();
   const qs = S.chapterQs.get(chId) || [];
-  const f = S.filters[chId] || (S.filters[chId] = { year: 'all', status: 'all', sub: 'all', sort: 'book' });
+  const f = S.filters[chId] || (S.filters[chId] = { year: 'all', status: 'all', sub: 'all', sort: 'book', sec: 'all' });
   const count = {}; qs.forEach(q => { if (q.year) count[q.year] = (count[q.year] || 0) + 1; });
   const years = Object.keys(count).map(Number).sort((a, b) => b - a);
   const match = q => yearMatch(q, f.year) && (f.sub === 'all' || q.sub === f.sub) && matchStatus(q, f.status);
-  let units = S.units.get(chId).map(u => ({ u, qs: u.qs.filter(match) })).filter(x => x.qs.length);
+  const isPaper = c.section === 'PAPERS';
+  if (isPaper && S.routeSec) f.sec = S.routeSec; else if (!isPaper) f.sec = 'all';
+  let units = S.units.get(chId).map(u => ({ u, qs: u.qs.filter(q => match(q) && (!isPaper || !f.sec || f.sec === 'all' || q.sec === f.sec)) })).filter(x => x.qs.length);
   if (f.sort !== 'book') units = units.slice().sort((a, b) => ((b.qs[0].year || 0) - (a.qs[0].year || 0)) * (f.sort === 'new' ? 1 : -1));
   const nq = units.reduce((n, x) => n + x.qs.length, 0);
   const cs = stats(qs);
   const firstU = units.find(x => x.qs.some(q => !attempt(q.id))) || units[0];
   const eraCount = v => qs.filter(q => yearMatch(q, v)).length;
-  const yearOpts = `<option value="all">All years</option>
+  const yearOpts = isPaper ? '' : `<option value="all">All years</option>
     <optgroup label="Periods">${ERAS.map(([v, l]) => eraCount(v) ? `<option value="${v}">${l} · ${eraCount(v)}</option>` : '').join('')}</optgroup>
     <optgroup label="Year">${years.map(y => `<option value="${y}">${y} · ${count[y]}</option>`).join('')}</optgroup>`;
   let html = `<div><a class="back" href="#/sec/${c.section}">${esc(S.data.sections[c.section])}</a>
@@ -212,29 +231,44 @@ function renderChapter(chId) {
   <p class="lead">${cs.total} questions · ${cs.attempted} attempted${accuracy(cs) ? ' · ' + accuracy(cs) : ''}${cs.time ? ' · ' + fmtTime(cs.time) : ''}</p>
   <div class="filterbar">
     <div class="pills">
-      ${pill('data-year', f.year, 'all', yearOpts)}
+      ${isPaper ? '' : pill('data-year', f.year, 'all', yearOpts)}
       ${pill('data-status', f.status, 'all', '<option value="all">Any status</option><option value="new">Not attempted</option><option value="correct">Correct</option><option value="wrong">Wrong</option><option value="unmarked">Unmarked</option><option value="bookmarked">Bookmarked</option>')}
       ${c.subtopics.length ? pill('data-sub', f.sub, 'all', `<option value="all">All topics</option>${c.subtopics.map(x => `<option value="${esc(x)}">${esc(x)}</option>`).join('')}`) : ''}
-      ${pill('data-sort', f.sort, 'book', '<option value="book">Book order</option><option value="new">Newest first</option><option value="old">Oldest first</option>')}
-      ${f.year !== 'all' || f.status !== 'all' || f.sub !== 'all' || f.sort !== 'book' ? '<a class="clear" data-clear>Clear</a>' : ''}
+      ${isPaper ? pill('data-sec', f.sec || 'all', 'all', '<option value="all">All sections</option><option value="VARC">VARC</option><option value="DILR">DILR</option><option value="QA">Quant</option>') : pill('data-sort', f.sort, 'book', '<option value="book">Book order</option><option value="new">Newest first</option><option value="old">Oldest first</option>')}
+      ${f.year !== 'all' || f.status !== 'all' || f.sub !== 'all' || f.sort !== 'book' || (f.sec && f.sec !== 'all') ? '<a class="clear" data-clear>Clear</a>' : ''}
     </div>
     <div class="fb-right"><span class="muted small">${nq} question${nq === 1 ? '' : 's'}</span>${firstU ? `<a class="btn primary" href="#/q/${(firstU.qs.find(q => !attempt(q.id)) || firstU.qs[0]).id}">Start</a>` : ''}</div>
   </div><div class="rows">`;
+  let lastSec = null;
   for (const { u, qs: uq } of units) {
     const first = uq[0], lastQ = uq[uq.length - 1];
+    if (isPaper && first.sec !== lastSec) { lastSec = first.sec; html += `<div class="rowhead">${esc(S.data.sections[first.sec] || first.sec)}</div>`; }
     const label = uq.length > 1 ? `${first.n}–${lastQ.n}` : `${first.n}`;
     const st = stats(uq);
     const types = [...new Set(uq.map(q => q.type))].join(' + ');
     html += `<a class="row" href="#/q/${(uq.find(q => !attempt(q.id)) || first).id}">
       <span class="n">${label}</span>
-      <span class="t">${first.year ? 'CAT ' + first.year : '<span class="muted">year not stated</span>'}${first.sub ? ' · ' + esc(first.sub) : ''}${uq.length > 1 ? ` · ${uq.length} questions` : ''}${uq.some(q => S.progress.bookmarks[q.id]) ? ' ★' : ''}<span class="dots">${uq.map(q => `<span class="dot ${attempt(q.id) ? attempt(q.id).result : ''}"></span>`).join('')}</span></span>
+      <span class="t">${isPaper ? esc(unitLabel(u, uq)) : (first.year ? 'CAT ' + first.year : '<span class="muted">year not stated</span>') + (first.sub ? ' · ' + esc(first.sub) : '') + (uq.length > 1 ? ` · ${uq.length} questions` : '')}${uq.some(q => S.progress.bookmarks[q.id]) ? ' ★' : ''}<span class="dots">${uq.map(q => `<span class="dot ${attempt(q.id) ? attempt(q.id).result : ''}"></span>`).join('')}</span></span>
       <span class="r">${types}${st.time ? ' · ' + fmtTime(st.time) : ''}</span></a>`;
   }
   html += `</div>${units.length ? '' : '<p class="muted small" style="margin-top:14px">Nothing matches these filters.</p>'}</div>`;
   app().innerHTML = html;
   const bind = (attr, key) => { const el = $(`[${attr}]`); if (!el) return; el.value = f[key]; el.onchange = e => { f[key] = e.target.value; renderChapter(chId); }; };
   bind('data-year', 'year'); bind('data-status', 'status'); bind('data-sub', 'sub'); bind('data-sort', 'sort');
-  const clr = $('[data-clear]'); if (clr) clr.onclick = () => { Object.assign(f, { year: 'all', status: 'all', sub: 'all', sort: 'book' }); renderChapter(chId); };
+  const sb = $('[data-sec]'); if (sb) { sb.value = f.sec || 'all'; sb.onchange = e => { S.routeSec = null; f.sec = e.target.value; renderChapter(chId); }; }
+  const clr = $('[data-clear]'); if (clr) clr.onclick = () => { S.routeSec = null; Object.assign(f, { year: 'all', status: 'all', sub: 'all', sort: 'book', sec: 'all' }); renderChapter(chId); };
+}
+function unitLabel(u, uq) {
+  const clip = (t, n) => { t = (t || '').replace(/^Directions?\s*\(Q\.?\s*Nos?\.?[^)]*\)\s*/i, '').replace(/\s+/g, ' ').trim(); return t.length > n ? t.slice(0, n - 1).replace(/\s+\S*$/, '') + '…' : t; };
+  if (uq.length > 1) {
+    const d = u.dir && S.data.directions[u.dir];
+    let t = '';
+    if (d && d.tx) { const b = d.tx.find(x => x.t === 'p' && x.text.length > 40 && !/^(Directions?|PASSAGE|Passage)\b/i.test(x.text)); t = b ? b.text : d.tx.map(x => x.text || '').join(' '); }
+    else if (d) t = d.text;
+    return `${uq.length} questions · ${clip(t, 70)}`;
+  }
+  const q = uq[0];
+  return clip(q.tx ? q.tx.stem.join(' ') : q.text.replace(/^\d{1,3}[.)]\s*/, ''), 90);
 }
 function matchStatus(q, st) {
   if (st === 'all') return true;
@@ -272,7 +306,7 @@ function renderUnit(qid) {
   S.progress.last = (u.qs.find(q => !attempt(q.id)) || q0).id; save();
 
   app().innerHTML = `<div class="umeta">
-    <span><a class="back" href="#/ch/${c.id}" style="margin:0">${esc(c.title)}</a> · <b>${first.year ? 'CAT ' + first.year : 'year not stated'}</b> · ${u.qs.length > 1 ? `Q${first.n}–${u.qs[u.qs.length - 1].n}` : `Q${first.n}`} · ${types.map(t => t === 'MCQ' ? 'MCQ' : 'TITA').join(' + ')} · <span class="${neg ? 'neg' : 'noneg'}">${neg ? '+3 / −1' : '+3 / no negative'}</span>${first.sub ? ' · ' + esc(first.sub) : ''}</span>
+    <span><a class="back" href="#/ch/${c.id}" style="margin:0">${esc(c.title)}</a> · <b>${c.section === 'PAPERS' ? esc(S.data.sections[first.sec] || first.sec) : (first.year ? 'CAT ' + first.year : 'year not stated')}</b> · ${u.qs.length > 1 ? `Q${first.n}–${u.qs[u.qs.length - 1].n}` : `Q${first.n}`} · ${types.map(t => t === 'MCQ' ? 'MCQ' : 'TITA').join(' + ')} · <span class="${neg ? 'neg' : 'noneg'}">${neg ? '+3 / −1' : '+3 / no negative'}</span>${first.sub ? ' · ' + esc(first.sub) : ''}</span>
     <span>${u.qs.length > 1 ? `${u.qs.length} questions · click a question to time it` : ''}</span>
   </div>
   <div class="unit ${d ? 'has-ctx' : ''}">
@@ -305,11 +339,31 @@ function answerHTML(q, a) {
     const tx = useText() && q.tx && q.tx.opts;
     return `<div class="opts">${q.optRects.map((r, i) => `<button class="opt ${cls(LETTERS[i])}" data-opt="${LETTERS[i]}" ${dis}><span class="l">${LETTERS[i].toUpperCase()}</span>${tx ? `<span class="ot">${esc(tx[i])}</span>` : crops(r, 1.6)}</button>`).join('')}</div>`;
   }
-  if (q.type === 'MCQ' && q.opts) {
+  if (q.type === 'MCQ') {
+    // options defined once in the directions (Data Sufficiency sets etc.)
+    const so = sharedOptions(q);
+    if (so) return `<div class="opts">${so.map((t, i) => `<button class="opt ${cls(LETTERS[i])}" data-opt="${LETTERS[i]}" ${dis}><span class="l">${LETTERS[i].toUpperCase()}</span><span class="ot">${esc(t)}</span></button>`).join('')}</div>`;
+    // options are in the question image but could not be split out
     return `<div class="letters">${LETTERS.slice(0, 4).map(o => `<button class="opt ${cls(o)}" data-opt="${o}" ${dis}>${o}</button>`).join('')}</div>`;
   }
   if (a) return `<p class="small muted">Your answer: <b>${esc(a.ans) || '—'}</b>${q.ans ? ` · key: <b>${esc(q.ans)}</b>` : ''}</p>`;
-  return `<div class="tita"><input type="text" data-tita placeholder="${q.type === 'MCQ' ? 'Option letter a–d (see directions)' : 'Your answer'}" autocomplete="off"></div>`;
+  return `<div class="tita"><input type="text" data-tita placeholder="Your answer" autocomplete="off"></div>`;
+}
+const SHARED_CACHE = new Map();
+function sharedOptions(q) {
+  const d = q.dir && S.data.directions[q.dir];
+  if (!d) return null;
+  if (SHARED_CACHE.has(d.id)) return SHARED_CACHE.get(d.id);
+  let out = null;
+  const t = d.text.replace(/\(\s*(?:19|20)\d\d\s*\)/g, ' ');
+  // greedy prefix so the LAST "(a)" is used (directions often say "from (a) to (d)" earlier)
+  const m = t.match(/[\s\S]*\(a\)\s*([\s\S]*?)\s*\(b\)\s*([\s\S]*?)\s*\(c\)\s*([\s\S]*?)\s*\(d\)\s*([\s\S]*?)(?:\s*\(e\)\s*([\s\S]*?))?$/);
+  if (m) {
+    out = m.slice(1).filter(Boolean).map(x => x.replace(/\s+/g, ' ').trim());
+    if (out.some(x => !x || x.length > 260)) out = null;
+  }
+  SHARED_CACHE.set(d.id, out);
+  return out;
 }
 
 function bindQblock(q) {

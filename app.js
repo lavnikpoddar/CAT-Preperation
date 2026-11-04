@@ -48,6 +48,7 @@ async function init() {
   window.addEventListener('beforeunload', flushUnit);
   document.addEventListener('keydown', onKey);
   document.addEventListener('visibilitychange', () => { if (document.hidden && S.t && S.t.running) pause(true); });
+  document.querySelectorAll('#nav a[data-ic]').forEach(a => a.insertAdjacentHTML('afterbegin', icon(a.dataset.ic)));
   initDock(); initPanel();
   route();
 }
@@ -79,6 +80,29 @@ const TARGETS = {
 };
 const pct = (a, b) => b ? Math.round(100 * a / b) : 0;
 const accuracy = st => st.correct + st.wrong ? pct(st.correct, st.correct + st.wrong) + '%' : null;
+
+/* ---------- icons (inline SVG, 24px grid, stroke = currentColor) ---------- */
+const ICON_PATHS = {
+  overview: '<rect x="3.5" y="3.5" width="7" height="7" rx="1.8"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.8"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.8"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.8"/>',
+  QA: '<path d="M18 5H7l6 7-6 7h11"/>',
+  DILR: '<path d="M4 20h16"/><path d="M7 16v-5M12 16V6M17 16v-8"/>',
+  VARC: '<path d="M3.5 5.5c2.8-1.3 5.7-1.3 8.5 0v13.5c-2.8-1.3-5.7-1.3-8.5 0z"/><path d="M20.5 5.5c-2.8-1.3-5.7-1.3-8.5 0v13.5c2.8-1.3 5.7-1.3 8.5 0z"/>',
+  settings: '<path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/>',
+  arrow: '<path d="M5 12h14M13 6l6 6-6 6"/>',
+  play: '<path d="M9 6.5v11l9-5.5z" fill="currentColor" stroke="none"/>',
+  attempted: '<circle cx="12" cy="12" r="8.5"/><path d="M8.5 12.3l2.4 2.4 4.6-4.9"/>',
+  accuracy: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" fill="currentColor"/>',
+  score: '<path d="M4 16.5l5-5 3.5 3.5L20 7.5"/><path d="M15 7.5h5v5"/>',
+  time: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
+  flag: '<path d="M6 21V4"/><path d="M6 4.5h11l-2 4 2 4H6"/>',
+};
+const icon = (name, cls = '') => `<svg class="ic ${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICON_PATHS[name] || ''}</svg>`;
+function ring(st) {
+  const r = 9, c = 2 * Math.PI * r;
+  const f = st.total ? st.attempted / st.total : 0;
+  const len = f ? Math.max(f, 0.035) * c : 0;
+  return `<svg class="ring" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="${r}" class="ring-bg"/>${len ? `<circle cx="12" cy="12" r="${r}" class="ring-fg" stroke-dasharray="${len.toFixed(2)} ${c.toFixed(2)}" transform="rotate(-90 12 12)"/>` : ''}</svg>`;
+}
 
 /* ---------- routing ---------- */
 function route() {
@@ -112,17 +136,16 @@ function renderDashboard() {
   let html = `<div class="hero">
     <h1>${days > 1 ? days + ' days to CAT' : days === 1 ? 'CAT is tomorrow' : days === 0 ? 'CAT is today' : 'CAT was ' + (-days) + ' days ago'}</h1>
     <p class="lead">${when}</p>
-    ${last ? `<a class="resume" href="#/q/${last.id}">Resume · ${esc(chapter(last.ch).title)} Q${last.n}</a>` : ''}
+    ${last ? `<a class="resume t-${chapter(last.ch).section}" href="#/q/${last.id}"><span class="play">${icon('play')}</span><span class="rt"><small>Resume</small>${esc(chapter(last.ch).title)} · Q${last.n}</span></a>` : ''}
   </div>`;
   for (const [sec, name] of Object.entries(S.data.sections)) {
     const chs = S.data.chapters.filter(c => c.section === sec);
     const st = stats(chs.flatMap(c => S.chapterQs.get(c.id) || []));
-    html += `<a class="secbox" href="#/sec/${sec}">
-      <div class="secbox-head"><span>${esc(name)}</span><span class="muted">${st.attempted} of ${st.total} done →</span></div>
+    html += `<a class="secbox t-${sec}" href="#/sec/${sec}" title="Open ${esc(name)}">
+      <div class="secbox-head"><span class="sh"><span class="badge-ic">${icon(sec)}</span>${esc(name)}</span><span class="go">${icon('arrow')}</span></div>
       ${metricsHTML(st, TARGETS[sec])}
     </a>`;
   }
-  html += `<p class="foot">Targets are rough 99th-percentile benchmarks for a 40-minute section, from coaching-institute estimates for recent CAT papers, not official figures. Time is per attempted question, including set reading.</p>`;
   app().innerHTML = html;
 }
 function metricsHTML(st, t) {
@@ -131,27 +154,32 @@ function metricsHTML(st, t) {
   const per = st.attempted ? st.score / st.attempted : null;
   const avg = st.attempted ? st.time / st.attempted : null;
   const grade = (v, ok) => v === null ? '' : ok ? 'good' : 'low';
+  const cell = (ic, label, val, cls = '') => `<div class="m ${cls}"><span class="ml">${icon(ic)}${label}</span><b>${val}</b></div>`;
+  const tcell = (val, sub) => `<div class="m"><b>${val}</b><span>${sub}</span></div>`;
   return `<div class="mgrid">
-    <div class="m"><b>${st.attempted}</b><span>attempted</span><i>exam pace ${t.attempts}</i></div>
-    <div class="m ${grade(acc, acc >= t.accuracy)}"><b>${acc === null ? '–' : acc + '%'}</b><span>accuracy</span><i>target ≥ ${t.accuracy}%</i></div>
-    <div class="m ${grade(per, per >= t.perAttempt)}"><b>${st.score > 0 ? '+' : ''}${st.score}</b><span>net score${per === null ? '' : ' · ' + per.toFixed(1) + '/q'}</span><i>target ${t.perAttempt} per attempt</i></div>
-    <div class="m ${grade(avg, avg <= t.time)}"><b>${avg === null ? '–' : fmtTime(avg)}</b><span>avg time / question</span><i>target ≤ ${fmtTime(t.time)}</i></div>
+    ${cell('attempted', 'Attempted', st.attempted)}
+    ${cell('accuracy', 'Accuracy', acc === null ? '–' : acc + '%', grade(acc, acc >= t.accuracy))}
+    ${cell('score', 'Net score', (st.score > 0 ? '+' : '') + st.score + (per === null ? '' : `<small> ${per.toFixed(1)}/q</small>`), grade(per, per >= t.perAttempt))}
+    ${cell('time', 'Avg time', avg === null ? '–' : fmtTime(avg), grade(avg, avg <= t.time))}
+  </div>
+  <div class="mgrid targets" title="Approximate 99th-percentile benchmarks for a 40-minute section, from coaching-institute estimates for recent CAT papers (not official). Time includes set reading.">
+    <div class="tlabel">${icon('flag')}99th percentile</div>
+    ${tcell(t.attempts, 'attempts in the exam')}
+    ${tcell('≥ ' + t.accuracy + '%', 'accuracy')}
+    ${tcell('+' + t.perAttempt, 'per attempt')}
+    ${tcell('≤ ' + fmtTime(t.time), 'per question')}
   </div>`;
 }
 function renderSection(sec) {
   const name = S.data.sections[sec]; if (!name) return renderDashboard();
   const chs = S.data.chapters.filter(c => c.section === sec);
   const ss = stats(chs.flatMap(c => S.chapterQs.get(c.id) || []));
-  let html = `<h1>${esc(name)}</h1><p class="lead">${ss.total} questions · ${ss.attempted} attempted${accuracy(ss) ? ' · ' + accuracy(ss) : ''}${ss.time ? ' · ' + fmtTime(ss.time) : ''}</p><div class="rows" style="margin-top:18px">`;
+  let html = `<div class="t-${sec}"><h1 class="with-ic"><span class="badge-ic lg">${icon(sec)}</span>${esc(name)}</h1><p class="lead">${ss.total} questions · ${ss.attempted} attempted${accuracy(ss) ? ' · ' + accuracy(ss) : ''}${ss.time ? ' · ' + fmtTime(ss.time) : ''}</p><div class="rows" style="margin-top:18px">`;
   for (const c of chs) {
     const cs = stats(S.chapterQs.get(c.id) || []);
-    html += `<a class="row" href="#/ch/${c.id}"><span class="n">${c.num}</span><span class="t">${esc(c.title)}${bar(cs)}</span><span class="r">${cs.attempted} / ${cs.total}</span></a>`;
+    html += `<a class="row crow" href="#/ch/${c.id}"><span class="n">${c.num}</span><span class="t">${esc(c.title)}</span><span class="prog">${ring(cs)}<span>${cs.attempted}<i> / ${cs.total}</i></span></span></a>`;
   }
-  app().innerHTML = html + '</div>';
-}
-function bar(st) {
-  const p = n => st.total ? (100 * n / st.total) + '%' : '0%';
-  return `<span class="bar"><i class="c" style="width:${p(st.correct)}"></i><i class="w" style="width:${p(st.wrong)}"></i><i class="u" style="width:${p(st.unmarked)}"></i></span>`;
+  app().innerHTML = html + '</div></div>';
 }
 
 /* ---------- chapter ---------- */
@@ -180,8 +208,8 @@ function renderChapter(chId) {
   const yearOpts = `<option value="all">All years</option>
     <optgroup label="Periods">${ERAS.map(([v, l]) => eraCount(v) ? `<option value="${v}">${l} · ${eraCount(v)}</option>` : '').join('')}</optgroup>
     <optgroup label="Year">${years.map(y => `<option value="${y}">${y} · ${count[y]}</option>`).join('')}</optgroup>`;
-  let html = `<a class="back" href="#/sec/${c.section}">${esc(S.data.sections[c.section])}</a>
-  <h1>${esc(c.title)}</h1>
+  let html = `<div class="t-${c.section}"><a class="back" href="#/sec/${c.section}">${esc(S.data.sections[c.section])}</a>
+  <h1 class="with-ic"><span class="badge-ic lg">${icon(c.section)}</span>${esc(c.title)}</h1>
   <p class="lead">${cs.total} questions · ${cs.attempted} attempted${accuracy(cs) ? ' · ' + accuracy(cs) : ''}${cs.time ? ' · ' + fmtTime(cs.time) : ''}</p>
   <div class="filterbar">
     <div class="pills">
@@ -203,7 +231,7 @@ function renderChapter(chId) {
       <span class="t">${first.year ? 'CAT ' + first.year : '<span class="muted">year not stated</span>'}${first.sub ? ' · ' + esc(first.sub) : ''}${uq.length > 1 ? ` · ${uq.length} questions` : ''}${uq.some(q => S.progress.bookmarks[q.id]) ? ' ★' : ''}<span class="dots">${uq.map(q => `<span class="dot ${attempt(q.id) ? attempt(q.id).result : ''}"></span>`).join('')}</span></span>
       <span class="r">${types}${st.time ? ' · ' + fmtTime(st.time) : ''}</span></a>`;
   }
-  html += `</div>${units.length ? '' : '<p class="muted small" style="margin-top:14px">Nothing matches these filters.</p>'}`;
+  html += `</div>${units.length ? '' : '<p class="muted small" style="margin-top:14px">Nothing matches these filters.</p>'}</div>`;
   app().innerHTML = html;
   const bind = (attr, key) => { const el = $(`[${attr}]`); if (!el) return; el.value = f[key]; el.onchange = e => { f[key] = e.target.value; renderChapter(chId); }; };
   bind('data-year', 'year'); bind('data-status', 'status'); bind('data-sub', 'sub'); bind('data-sort', 'sort');

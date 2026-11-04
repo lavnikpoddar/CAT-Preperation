@@ -102,7 +102,8 @@ def gappy(words_by_page, rects, gap=26.0):
     return False
 
 
-INK = {}   # page key -> ink mask, set by extract_paper
+INK = {}      # page key -> ink mask, set by extract_paper
+LABELS = {}   # page key -> small-caps label words (box headings), set by extract_paper
 
 
 def drawn_content(words_by_page, rects, min_px=60):
@@ -114,7 +115,7 @@ def drawn_content(words_by_page, rects, min_px=60):
         if ink is None:
             continue
         sub = ink[int(y0 * s):int(y1 * s), int(x0 * s):int(x1 * s)].copy()
-        for w in TX.words_in(words_by_page[p], [p, x0, y0, x1, y1]):
+        for w in TX.words_in(words_by_page[p] + LABELS.get(p, []), [p, x0, y0, x1, y1]):
             wx0, wy0, wx1, wy1 = (max(0, int((w[0] - x0 - 1.5) * s)), max(0, int((w[1] - y0 - 2) * s)),
                                   int((w[2] - x0 + 1.5) * s), int((w[3] - y0 + 2) * s))
             sub[wy0:wy1, wx0:wx1] = False
@@ -173,6 +174,7 @@ def extract_paper(name, year, slot, pdf_path, pages_dir, img_out):
     pdf = pdfplumber.open(pdf_path)
     npages = len(pdf.pages)
     words_by_page, boxes_by_page, labels_by_page = load_words(pdf, name)
+    LABELS.update(labels_by_page)
     key = parse_key(pdf)
     ink = {}
     for i in range(1, npages + 1):

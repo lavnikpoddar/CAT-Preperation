@@ -7,16 +7,31 @@
 <meta name="description" content="Topic-wise CAT past-paper practice with timing, progress tracking and an AI tutor.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Oswald:wght@500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23111'/%3E%3Ctext x='16' y='23' font-family='Helvetica,Arial' font-size='18' font-weight='700' text-anchor='middle' fill='white'%3EC%3C/text%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23111'/%3E%3Ctext x='16' y='23' font-family='Helvetica,Arial' font-size='18' font-weight='600' text-anchor='middle' fill='white'%3EC%3C/text%3E%3C/svg%3E">
 </head>
 <body>
 <header class="top">
   <a class="brand" href="#/">CAT Prep</a>
-  <a class="navlink" href="#/settings" data-nav="settings">Settings</a>
+  <a class="navlink" href="#/settings">Settings</a>
 </header>
 <main id="app"><p class="muted center">Loading…</p></main>
+
+<div id="dock" hidden>
+  <div class="dock-time">
+    <button class="icon" id="pause" type="button" aria-label="Pause">❚❚</button>
+    <span id="clock">0:00</span><span id="clock2" class="muted"></span>
+  </div>
+  <div class="dock-mid">
+    <button class="btn quiet" id="reveal" type="button">Show answer</button>
+    <button class="btn primary" id="submit" type="button" disabled>Submit</button>
+  </div>
+  <div class="dock-nav">
+    <a class="icon" id="prev" aria-label="Previous">←</a>
+    <a class="icon" id="next" aria-label="Next">→</a>
+  </div>
+</div>
 
 <button id="ai-toggle" type="button" hidden aria-label="Open AI tutor">AI</button>
 <aside id="ai-panel" aria-label="AI tutor" hidden>

@@ -90,6 +90,119 @@ def load_pages(xml_path):
     return pages
 
 
+def word_meta(blocks):
+    """Map a word tuple to (line top, block top)."""
+    m = {}
+    for blk in blocks:
+        bt = min(w[1] for ln in blk for w in ln)
+        for ln in blk:
+            lt = min(w[1] for w in ln)
+            lb = max(w[3] for w in ln)
+            for w in ln:
+                m[w] = (lt, bt, lb)
+    return m
+
+
+OPT_MARKS = ("(a)", "(b)", "(c)", "(d)", "(e)")
+
+
+def words_in_rect(words, rect):
+    p, x0, y0, x1, y1 = rect
+    ws = [w for w in words
+          if (w[0] + w[2]) / 2 >= x0 and (w[0] + w[2]) / 2 < x1
+          and (w[1] + w[3]) / 2 >= y0 and (w[1] + w[3]) / 2 < y1]
+    ws.sort(key=lambda w: (round(w[1] / 4), w[0]))
+    return ws
+
+
+def split_options(rects, words_by_page, meta_by_page, ink_by_page):
+    """Split a question region into a stem and four option crops.
+    Returns (stem_rects, [opt_rects x4]) or None when the options cannot be
+    located (TITA questions, options given in the directions, odd layouts)."""
+    marks = []
+    for ri, rect in enumerate(rects):
+        for w in words_in_rect(words_by_page[rect[0]], rect):
+            if w[4] in OPT_MARKS:
+                marks.append((ri, w))
+    found = {}
+    for ri, w in marks:
+        if w[4] not in found:
+            found[w[4]] = (ri, w)
+    if any(m not in found for m in OPT_MARKS[:4]):
+        return None
+    order = [found[m] for m in OPT_MARKS if m in found]
+    for (r1, w1), (r2, w2) in zip(order, order[1:]):
+        later = r2 > r1 or (r2 == r1 and (w2[1] > w1[1] + 4 or (abs(w2[1] - w1[1]) <= 4 and w2[0] > w1[0])))
+        if not later:
+            return None
+    nopt = len(order)
+    # top of each marker's row (block top catches a fraction numerator)
+    metas = [meta_by_page[rects[ri][0]].get(w, (w[1], w[1], w[3])) for ri, w in order]
+    tops = []
+    for lt, bt, lb in metas:
+        top = lt - 1
+        # extend to the block top for a numerator, but not onto another option row
+        if 0 < lt - bt <= 10 and not any(abs(lt2 - bt) < 2 for lt2, _, _ in metas if lt2 != lt):
+            top = bt - 1
+        tops.append(top)
+    rows = []  # [ri, top, [idx, ...]]
+    for i, ((ri, w), top) in enumerate(zip(order, tops)):
+        if rows and rows[-1][0] == ri and abs(top - rows[-1][1]) <= 4:
+            rows[-1][2].append(i)
+        else:
+            rows.append([ri, top, [i]])
+    # between stacked rows, cut halfway between the previous row's baseline
+    # line and this row's line, so fraction numerators/denominators stay whole
+    for k in range(1, len(rows)):
+        if rows[k][0] != rows[k - 1][0]:
+            continue
+        rect = rects[rows[k][0]]
+        prev_top = rows[k - 1][1]
+        this_top = min(metas[i][0] for i in rows[k][2])
+        # last ink line of the previous option: its words (wrapped lines,
+        # denominators) but not a small numerator hugging the next row
+        ws = [w for w in words_in_rect(words_by_page[rect[0]], rect)
+              if prev_top <= (w[1] + w[3]) / 2 < this_top
+              and not (w[2] - w[0] < 25 and w[1] > this_top - 10 and w[1] > prev_top + 6)]
+        prev_bottom = max([w[3] for w in ws] + [max(metas[i][2] for i in rows[k - 1][2])])
+        if this_top > prev_bottom:
+            rows[k][1] = prev_bottom + min(1.5, (this_top - prev_bottom) / 2)
+        else:
+            rows[k][1] = prev_bottom + 0.5
+    opt_rects = [None] * nopt
+    for k, (ri, top, idxs) in enumerate(rows):
+        p, rx0, ry0, rx1, ry1 = rects[ri]
+        if k + 1 < len(rows) and rows[k + 1][0] == ri:
+            bottom = rows[k + 1][1]
+        else:
+            bottom = ry1
+        band = [p, rx0, top, rx1, bottom]
+        year_x = [w[0] for w in words_in_rect(words_by_page[p], band) if YEAR_RE.fullmatch(w[4])]
+        for j, i in enumerate(idxs):
+            w = order[i][1]
+            xs = w[0] - 2
+            xe = order[idxs[j + 1]][1][0] - 3 if j + 1 < len(idxs) else rx1
+            if year_x and j == len(idxs) - 1:
+                xe = min(xe, min(year_x) - 2)
+            opt_rects[i] = [[p, xs, top, xe, bottom]]
+    if any(o is None for o in opt_rects):
+        return None
+    first_ri, first_top = rows[0][0], rows[0][1]
+    stem = []
+    for ri, rect in enumerate(rects[:first_ri + 1]):
+        r = list(rect)
+        if ri == first_ri:
+            r[4] = first_top - 1
+        if r[4] - r[2] > 3:
+            stem.append(r)
+    if ink_by_page:
+        stem = tighten(stem, ink_by_page)
+        opt_rects = [tighten(o, ink_by_page, pad=2.0, trim_x=True) for o in opt_rects]
+    if not stem or any(not o for o in opt_rects):
+        return None
+    return stem, opt_rects
+
+
 def in_body(w):
     return BODY_TOP <= w[1] and w[3] <= BODY_BOTTOM + 4
 
@@ -293,8 +406,32 @@ def line_anchors(pno, ln, blk_top, gutter, zones, subtopic_names):
     return out
 
 
-def tighten(rects, ink_by_page, pad=3.0):
-    """Shrink each rect vertically to the ink it contains (using rendered pages)."""
+def snap_gap(ink_by_page, p, x0, x1, y, max_up=10.0, gap_px=3):
+    """Move y upward over ink that belongs to the row below it (a fraction
+    numerator) until a blank gap of gap_px rows is found."""
+    ink = ink_by_page.get(p)
+    if ink is None:
+        return y
+    s = PAGE_DPI / 72.0
+    px0, px1 = int(x0 * s), int(x1 * s)
+    py = int(y * s)
+    if not ink[py - 1, px0:px1].any() and not ink[py - 2, px0:px1].any():
+        return y  # boundary already sits in white space
+    blank = 0
+    yy = py - 1
+    while yy > py - int(max_up * s):
+        if ink[yy, px0:px1].any():
+            blank = 0
+        else:
+            blank += 1
+            if blank >= gap_px:
+                return (yy + gap_px) / s
+        yy -= 1
+    return y
+
+
+def tighten(rects, ink_by_page, pad=3.0, trim_x=False):
+    """Shrink each rect to the ink it contains (using rendered pages)."""
     out = []
     s = PAGE_DPI / 72.0
     for p, x0, y0, x1, y1 in rects:
@@ -310,7 +447,12 @@ def tighten(rects, ink_by_page, pad=3.0):
             continue
         ny0 = max(y0, (py0 + rows[0]) / s - pad)
         ny1 = min(y1, (py0 + rows[-1] + 1) / s + pad)
-        out.append([p, round(x0, 1), round(ny0, 1), round(x1, 1), round(ny1, 1)])
+        nx0, nx1 = x0, x1
+        if trim_x:
+            cols = sub.any(axis=0).nonzero()[0]
+            nx0 = max(x0, (px0 + cols[0]) / s - pad)
+            nx1 = min(x1, (px0 + cols[-1] + 1) / s + pad)
+        out.append([p, round(nx0, 1), round(ny0, 1), round(nx1, 1), round(ny1, 1)])
     return out
 
 
@@ -321,6 +463,7 @@ def main():
         pages_dir = sys.argv[sys.argv.index("--pages") + 1]
     pages = load_pages(xml_path)
     words_by_page = {p: page_words(b) for p, b in pages.items()}
+    meta_by_page = {p: word_meta(b) for p, b in pages.items()}
     layouts = {}
     for p, b in pages.items():
         gutter, zones = compute_layout(b)
@@ -344,6 +487,18 @@ def main():
         for p in range(start, end + 1):
             anchors += find_anchors(p, pages[p], layouts[p], sub_names)
         anchors.sort(key=lambda a: a[0].key())
+        if ink_by_page:
+            # a fraction numerator on an anchor's first line sits above the
+            # line's words: pull the boundary up to the nearest blank gap
+            for pos, kind, _ in anchors:
+                if kind not in ("q", "dir", "solgrp"):
+                    continue
+                gutter, zones, _w = layouts[pos.page]
+                if not zones:
+                    continue
+                z = zones[min(pos.zi, len(zones) - 1)]
+                x0, x1 = col_x(pos.col, z["full"], gutter)
+                pos.y = snap_gap(ink_by_page, pos.page, x0, x1, pos.y)
 
         # walk anchors in reading order
         mode = "q"
@@ -423,7 +578,12 @@ def main():
                 q = {"id": f"{ch_id}q{n}", "ch": ch_id, "n": n, "sub": cur_sub,
                      "year": year, "type": qtype, "opts": has_opts,
                      "dir": d, "rects": rects, "text": text[:2500],
+                     "stem": None, "optRects": None,
                      "ans": None, "sol": None, "solgrp": None}
+                if has_opts:
+                    so = split_options(rects, words_by_page, meta_by_page, ink_by_page)
+                    if so:
+                        q["stem"], q["optRects"] = so
                 questions.append(q)
                 qmap[n] = q
             else:
@@ -446,8 +606,9 @@ def main():
         nsol = sum(1 for q in qs if q["sol"])
         nans = sum(1 for q in qs if q["ans"])
         nyear = sum(1 for q in qs if q["year"])
+        nopt = sum(1 for q in qs if q["optRects"])
         report.append(f"ch{num:02d} {title[:28]:28s} pages {start}-{end} "
-                      f"q={len(qs):4d} sol={nsol:4d} ans={nans:4d} year={nyear:4d} "
+                      f"q={len(qs):4d} sol={nsol:4d} ans={nans:4d} year={nyear:4d} opt={nopt:4d} "
                       f"seq_issues={len(seq_issues)} {seq_issues[:6]}")
 
     data = {"book": "Face 2 Face CAT – Sectionwise & Topicwise Solved Papers 1993-2019 (Arihant)",

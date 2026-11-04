@@ -6,7 +6,7 @@ A static web app for practising the questions in *Face 2 Face CAT – Sectionwis
 
 - **Dashboard** – attempts, accuracy, net score (+3 / −1 for MCQ, +3 / 0 for TITA), time spent, and per-chapter progress bars grouped by section (QA, DILR, VARC).
 - **Chapter view** – every question in the chapter with its year, type and your result; filter by year, status, bookmark, or sub-topic (English Usage).
-- **Question view** – the question (and its directions / data set / passage) cropped straight from the book, a timer that starts when you open it, the negative-marking rule for that question, answer entry (option buttons for MCQ, a text box for TITA), the book's solution after you submit, and an AI tutor (hint / explain / why-wrong / free chat).
+- **Question view** – two columns: the directions / data set / passage on the left (sticky), the questions on the right. Each question shows its stem and its options as separate crops from the book, so nothing is repeated; TITA questions get a text box. A set (a passage with several questions) is answered in one go: the set clock runs from the moment you open it, and each question's own clock runs while that question is selected, so reading time is kept apart from answering time. A bottom dock holds the timer (pause / resume), Show answer, Submit, and previous / next. The book's solution appears under a question once it is submitted. The AI tutor (hint / explain / why-wrong / free chat) lives in a floating side panel.
 - **Settings** – Anthropic API key and model for the tutor, export / import / reset progress, theme.
 
 Progress is stored in the browser's `localStorage`. Export it from Settings to move between devices.
@@ -28,7 +28,8 @@ The AI tutor calls the Anthropic Messages API directly from the browser with the
 ```
 index.html, style.css, app.js   the app
 data/questions.json             2,826 questions: chapter, number, year, MCQ/TITA, answer key,
-                                crop rectangles (PDF points), text extraction, solution crops
+                                crop rectangles (PDF points) for the whole question, its stem
+                                and each option, text extraction, solution crops
 img/pages/p-NNN.webp            book pages 90–721 rendered at 150 DPI (grayscale)
 tools/extract.py                rebuilds data/questions.json from the PDF
 ```

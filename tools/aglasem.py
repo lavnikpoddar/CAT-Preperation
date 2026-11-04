@@ -102,8 +102,29 @@ def gappy(words_by_page, rects, gap=26.0):
     return False
 
 
+INK = {}   # page key -> ink mask, set by extract_paper
+
+
+def drawn_content(words_by_page, rects, min_px=60):
+    """Ink in the region that no text word covers: vector-drawn maths,
+    charts or tables. Such regions keep the page image."""
+    s = E.PAGE_DPI / 72.0
+    for p, x0, y0, x1, y1 in rects:
+        ink = INK.get(p)
+        if ink is None:
+            continue
+        sub = ink[int(y0 * s):int(y1 * s), int(x0 * s):int(x1 * s)].copy()
+        for w in TX.words_in(words_by_page[p], [p, x0, y0, x1, y1]):
+            wx0, wy0, wx1, wy1 = (max(0, int((w[0] - x0 - 1.5) * s)), max(0, int((w[1] - y0 - 2) * s)),
+                                  int((w[2] - x0 + 1.5) * s), int((w[3] - y0 + 2) * s))
+            sub[wy0:wy1, wx0:wx1] = False
+        if int(sub.sum()) > min_px:
+            return True
+    return False
+
+
 def transcribe(words_by_page, rects, strip_marker=False):
-    if gappy(words_by_page, rects):
+    if gappy(words_by_page, rects) or drawn_content(words_by_page, rects):
         return None
     paras = TX.transcribe(words_by_page, rects, {}, strip_marker=strip_marker)
     if paras:
@@ -159,6 +180,7 @@ def extract_paper(name, year, slot, pdf_path, pages_dir, img_out):
         fn = os.path.join(pages_dir, f"{k}.png")
         if os.path.exists(fn):
             ink[k] = np.asarray(Image.open(fn).convert("L")) < 180
+            INK[k] = ink[k]
             if img_out:
                 out = os.path.join(img_out, f"{k}.webp")
                 if not os.path.exists(out):

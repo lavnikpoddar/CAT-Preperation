@@ -14,7 +14,7 @@ const LETTERS = ['a', 'b', 'c', 'd', 'e'];
 const S = {
   data: null, byId: new Map(), chapterQs: new Map(), units: new Map(), unitOf: new Map(),
   progress: load(STORE_KEY, { attempts: {}, bookmarks: {}, sets: {}, last: null }),
-  settings: load(SETTINGS_KEY, { apiKey: '', model: 'claude-opus-5-5', panelW: 400, panelOpen: false, textMode: true, examDate: '2026-11-29', ambience: true, musicUrl: 'https://www.youtube.com/watch?v=sjkrrmBnpGE', musicVol: 35 }),
+  settings: load(SETTINGS_KEY, { apiKey: '', model: 'claude-opus-5-5', panelW: 400, panelOpen: false, textMode: true, examDate: '2026-11-29' }),
   filters: {}, t: null, chats: {}, unit: null, picks: {},
 };
 
@@ -42,8 +42,9 @@ async function init() {
     const list = [];
     for (const q of qs) {
       const last = list[list.length - 1];
-      if (q.dir && last && last.dir === q.dir) last.qs.push(q);
-      else list.push({ id: q.dir ? q.dir : q.id, dir: q.dir, qs: [q], ch });
+      const shared = q.dir && isContentDir(S.data.directions[q.dir]);
+      if (shared && last && last.dir === q.dir) last.qs.push(q);
+      else list.push({ id: shared ? q.dir : q.id, dir: shared ? q.dir : null, note: !shared && q.dir ? q.dir : null, qs: [q], ch });
     }
     list.forEach((u, i) => { u.i = i; u.list = list; for (const q of u.qs) S.unitOf.set(q.id, u); });
     S.units.set(ch, list);
@@ -53,11 +54,20 @@ async function init() {
   document.addEventListener('keydown', onKey);
   document.addEventListener('visibilitychange', () => { if (document.hidden && S.t && S.t.running) pause(true); });
   document.querySelectorAll('#nav a[data-ic]').forEach(a => a.insertAdjacentHTML('afterbegin', icon(a.dataset.ic)));
-  initDock(); initPanel(); initAmbience();
+  initDock(); initPanel();
   route();
 }
 
 const chapter = id => S.data.chapters.find(c => c.id === id);
+// A directions block is shared content (passage, data set, option definitions) rather than a
+// one-line instruction when it is long, holds a table, or is a tall image region.
+function isContentDir(d) {
+  if (!d) return false;
+  if (d.tx && d.tx.some(b => b.t === 'table')) return true;
+  if ((d.text || '').length >= 300) return true;
+  const h = d.rects.reduce((t, r) => t + (r[4] - r[2]), 0);
+  return !d.tx && h >= 90;
+}
 const attempt = qid => S.progress.attempts[qid];
 const negMark = q => q.type === 'MCQ';
 
@@ -154,6 +164,7 @@ function renderDashboard() {
   }
   app().innerHTML = html;
 }
+const backBtn = (href, label) => `<a class="backbtn" href="${href}" title="Back to ${esc(label)}">${icon('arrow')}<span>${esc(label)}</span></a>`;
 function metricsHTML(st, t) {
   const graded = st.correct + st.wrong;
   const acc = graded ? Math.round(100 * st.correct / graded) : null;
@@ -181,19 +192,20 @@ function renderSection(sec) {
   const papers = S.data.chapters.filter(c => c.section === 'PAPERS');
   const paperIds = new Set(papers.map(c => c.id));
   const ss = stats(sec === 'PAPERS' ? S.data.questions.filter(q => paperIds.has(q.ch)) : S.data.questions.filter(q => q.sec === sec));
-  let html = `<div><h1 class="with-ic"><span class="badge-ic lg">${icon(sec)}</span>${esc(name)}</h1><p class="lead">${ss.total} questions · ${ss.attempted} attempted${accuracy(ss) ? ' · ' + accuracy(ss) : ''}${ss.time ? ' · ' + fmtTime(ss.time) : ''}</p>`;
+  let html = `<div><h1 class="with-ic"><span class="badge-ic lg">${icon(sec)}</span>${esc(name)}</h1>`;
   const row = (c, label, qs, href) => { const cs = stats(qs); return `<a class="row crow" href="${href}"><span class="n">${label}</span><span class="t">${esc(c.title)}</span><span class="prog">${ring(cs)}<span>${cs.attempted}<i> / ${cs.total}</i></span></span></a>`; };
+  const resumeIn = (c, filter) => { const qs = (S.chapterQs.get(c.id) || []).filter(filter || (() => true)); const q = qs.find(x => !attempt(x.id)) || qs[0]; return q ? `#/q/${q.id}` : `#/ch/${c.id}`; };
   if (sec === 'PAPERS') {
-    html += `<p class="lead" style="margin-top:4px">CAT 2024 and 2025 (all slots, official answer keys) and the book's solved 2017–2019 papers. Their questions also count towards the Quant, DILR and VARC figures.</p><div class="rows" style="margin-top:18px">`;
-    for (const c of papers) html += row(c, '', S.chapterQs.get(c.id) || [], `#/ch/${c.id}`);
+    html += `<div class="rows" style="margin-top:22px">`;
+    for (const c of papers) html += row(c, '', S.chapterQs.get(c.id) || [], resumeIn(c));
     html += '</div>';
   } else {
-    html += `<div class="rows" style="margin-top:18px">`;
+    html += `<div class="rows" style="margin-top:22px">`;
     for (const c of chs) html += row(c, c.num, S.chapterQs.get(c.id) || [], `#/ch/${c.id}`);
     html += '</div>';
     if (papers.length) {
       html += `<h2>From full papers</h2><div class="rows">`;
-      for (const c of papers) html += row(c, '', (S.chapterQs.get(c.id) || []).filter(q => q.sec === sec), `#/ch/${c.id}?sec=${sec}`);
+      for (const c of papers) html += row(c, '', (S.chapterQs.get(c.id) || []).filter(q => q.sec === sec), resumeIn(c, q => q.sec === sec));
       html += '</div>';
     }
   }
@@ -221,16 +233,14 @@ function renderChapter(chId) {
   if (isPaper && S.routeSec) f.sec = S.routeSec; else if (!isPaper) f.sec = 'all';
   let units = S.units.get(chId).map(u => ({ u, qs: u.qs.filter(q => match(q) && (!isPaper || !f.sec || f.sec === 'all' || q.sec === f.sec)) })).filter(x => x.qs.length);
   if (f.sort !== 'book') units = units.slice().sort((a, b) => ((b.qs[0].year || 0) - (a.qs[0].year || 0)) * (f.sort === 'new' ? 1 : -1));
-  const nq = units.reduce((n, x) => n + x.qs.length, 0);
   const cs = stats(qs);
   const firstU = units.find(x => x.qs.some(q => !attempt(q.id))) || units[0];
   const eraCount = v => qs.filter(q => yearMatch(q, v)).length;
   const yearOpts = isPaper ? '' : `<option value="all">All years</option>
     <optgroup label="Periods">${ERAS.map(([v, l]) => eraCount(v) ? `<option value="${v}">${l} · ${eraCount(v)}</option>` : '').join('')}</optgroup>
     <optgroup label="Year">${years.map(y => `<option value="${y}">${y} · ${count[y]}</option>`).join('')}</optgroup>`;
-  let html = `<div><a class="back" href="#/sec/${c.section}">${esc(S.data.sections[c.section])}</a>
+  let html = `<div>${backBtn('#/sec/' + c.section, S.data.sections[c.section])}
   <h1 class="with-ic"><span class="badge-ic lg">${icon(c.section)}</span>${esc(c.title)}</h1>
-  <p class="lead">${cs.total} questions · ${cs.attempted} attempted${accuracy(cs) ? ' · ' + accuracy(cs) : ''}${cs.time ? ' · ' + fmtTime(cs.time) : ''}</p>
   <div class="filterbar">
     <div class="pills">
       ${isPaper ? '' : pill('data-year', f.year, 'all', yearOpts)}
@@ -239,7 +249,7 @@ function renderChapter(chId) {
       ${isPaper ? pill('data-sec', f.sec || 'all', 'all', '<option value="all">All sections</option><option value="VARC">VARC</option><option value="DILR">DILR</option><option value="QA">Quant</option>') : pill('data-sort', f.sort, 'book', '<option value="book">Book order</option><option value="new">Newest first</option><option value="old">Oldest first</option>')}
       ${f.year !== 'all' || f.status !== 'all' || f.sub !== 'all' || f.sort !== 'book' || (f.sec && f.sec !== 'all') ? '<a class="clear" data-clear>Clear</a>' : ''}
     </div>
-    <div class="fb-right"><span class="muted small">${nq} question${nq === 1 ? '' : 's'}</span>${firstU ? `<a class="btn primary" href="#/q/${(firstU.qs.find(q => !attempt(q.id)) || firstU.qs[0]).id}">Start</a>` : ''}</div>
+    <div class="fb-right">${firstU ? `<a class="btn primary" href="#/q/${(firstU.qs.find(q => !attempt(q.id)) || firstU.qs[0]).id}">Start</a>` : ''}</div>
   </div><div class="rows">`;
   let lastSec = null;
   for (const { u, qs: uq } of units) {
@@ -307,10 +317,16 @@ function renderUnit(qid) {
   const neg = types.includes('MCQ');
   S.progress.last = (u.qs.find(q => !attempt(q.id)) || q0).id; save();
 
+  const isPaper = c.section === 'PAPERS';
+  const note = u.note && S.data.directions[u.note];
+  const qLabel = u.qs.length > 1 ? `Q${first.n}–${u.qs[u.qs.length - 1].n}` : `Q${first.n}`;
+  const pos = isPaper ? ` · ${u.list.slice(0, u.i).reduce((n, x) => n + x.qs.length, 0) + 1}${u.qs.length > 1 ? '–' + (u.list.slice(0, u.i + 1).reduce((n, x) => n + x.qs.length, 0)) : ''} of ${S.chapterQs.get(c.id).length}` : '';
   app().innerHTML = `<div class="umeta">
-    <span><a class="back" href="#/ch/${c.id}" style="margin:0">${esc(c.title)}</a> · <b>${c.section === 'PAPERS' ? esc(S.data.sections[first.sec] || first.sec) : (first.year ? 'CAT ' + first.year : 'year not stated')}</b> · ${u.qs.length > 1 ? `Q${first.n}–${u.qs[u.qs.length - 1].n}` : `Q${first.n}`} · ${types.map(t => t === 'MCQ' ? 'MCQ' : 'TITA').join(' + ')} · <span class="${neg ? 'neg' : 'noneg'}">${neg ? '+3 / −1' : '+3 / no negative'}</span>${first.sub ? ' · ' + esc(first.sub) : ''}</span>
-    <span>${u.qs.length > 1 ? `${u.qs.length} questions · click a question to time it` : ''}</span>
+    <span class="row-left">${backBtn(isPaper ? '#/sec/PAPERS' : '#/ch/' + c.id, c.title)}
+      <span class="meta-line"><b>${isPaper ? esc(S.data.sections[first.sec] || first.sec) : (first.year ? 'CAT ' + first.year : 'year not stated')}</b> · ${qLabel}${pos} · ${types.map(t => t === 'MCQ' ? 'MCQ' : 'TITA').join(' + ')} · <span class="${neg ? 'neg' : 'noneg'}">${neg ? '+3 / −1' : '+3 / no negative'}</span>${first.sub ? ' · ' + esc(first.sub) : ''}</span>
+    </span>
   </div>
+  ${note ? `<div class="note-dir">${useText() && note.tx ? esc(note.tx.map(b => b.text || '').join(' ')) : crops(note.rects, 1.4)}</div>` : ''}
   <div class="unit ${d ? 'has-ctx' : ''}">
     ${d ? `<div class="context">${useText() && d.tx ? blocksHTML(d.tx) : crops(d.rects, 1.6)}</div>` : ''}
     <div class="qs">${u.qs.map(q => qblockHTML(q)).join('')}</div>
@@ -531,7 +547,7 @@ function navUnit(dir) {
   if (!S.unit) return;
   const list = S.unit.list; let i = S.unit.i + dir;
   if (i < 0) return;
-  if (i >= list.length) { location.hash = '#/ch/' + S.unit.ch; return; }
+  if (i >= list.length) { location.hash = chapter(S.unit.ch).section === 'PAPERS' ? '#/sec/PAPERS' : '#/ch/' + S.unit.ch; return; }
   location.hash = '#/q/' + list[i].qs[0].id;
 }
 function updateDock() {
@@ -787,60 +803,6 @@ async function streamClaude(messages, onText, signal) {
   return text;
 }
 
-/* ---------- study music: blurred YouTube video behind frosted-glass cards ---------- */
-const AMB = { player: null, ready: false, sound: false, apiLoading: false };
-function ytId(url) {
-  const m = String(url || '').match(/(?:v=|youtu\.be\/|embed\/|shorts\/|live\/)([\w-]{11})/) || String(url || '').match(/^([\w-]{11})$/);
-  return m ? m[1] : null;
-}
-function initAmbience() {
-  const btn = $('#music-btn'), vol = $('#music-vol');
-  vol.value = S.settings.musicVol ?? 35;
-  btn.onclick = () => toggleSound();
-  vol.oninput = () => { S.settings.musicVol = +vol.value; saveSettings(); if (AMB.ready) AMB.player.setVolume(+vol.value); };
-  applyAmbience();
-}
-function applyAmbience() {
-  const on = S.settings.ambience !== false && !!ytId(S.settings.musicUrl);
-  document.body.classList.toggle('ambient', on);
-  $('#music').hidden = !on;
-  if (!on) { if (AMB.player) { AMB.player.destroy(); AMB.player = null; AMB.ready = false; AMB.sound = false; $('#bg').innerHTML = '<div id="bg-player"></div>'; } renderMusicBtn(); return; }
-  const id = ytId(S.settings.musicUrl);
-  if (AMB.player && AMB.ready) { if (AMB.id !== id) { AMB.id = id; AMB.player.loadVideoById(id); if (!AMB.sound) AMB.player.mute(); } renderMusicBtn(); return; }
-  AMB.id = id;
-  if (window.YT && window.YT.Player) return createPlayer();
-  window.onYouTubeIframeAPIReady = createPlayer;
-  if (!AMB.apiLoading) { AMB.apiLoading = true; const tag = document.createElement('script'); tag.src = 'https://www.youtube.com/iframe_api'; document.head.appendChild(tag); }
-  renderMusicBtn();
-}
-function createPlayer() {
-  if (AMB.player || !document.body.classList.contains('ambient')) return;
-  AMB.player = new YT.Player('bg-player', {
-    videoId: AMB.id,
-    playerVars: { autoplay: 1, mute: 1, controls: 0, loop: 1, playlist: AMB.id, playsinline: 1, rel: 0, disablekb: 1, iv_load_policy: 3, modestbranding: 1, fs: 0 },
-    events: {
-      onReady: e => { AMB.ready = true; e.target.mute(); e.target.setVolume(+(S.settings.musicVol ?? 35)); e.target.playVideo(); renderMusicBtn(); },
-      onStateChange: e => { if (e.data === YT.PlayerState.ENDED) e.target.playVideo(); },
-    },
-  });
-}
-function toggleSound() {
-  if (!AMB.ready) return;
-  AMB.sound = !AMB.sound;
-  if (AMB.sound) { AMB.player.unMute(); AMB.player.setVolume(+(S.settings.musicVol ?? 35)); AMB.player.playVideo(); }
-  else AMB.player.mute();
-  renderMusicBtn();
-}
-function renderMusicBtn() {
-  const btn = $('#music-btn'); if (!btn) return;
-  btn.innerHTML = AMB.sound
-    ? '<svg class="ic" viewBox="0 0 24 24"><path d="M5 10v4h3l4 3.5v-11L8 10z"/><path d="M15.5 9.5a3.5 3.5 0 0 1 0 5M18 7a7 7 0 0 1 0 10"/></svg>'
-    : '<svg class="ic" viewBox="0 0 24 24"><path d="M9 17.5V6l10-2v11.5"/><circle cx="6.5" cy="17.5" r="2.5"/><circle cx="16.5" cy="15.5" r="2.5"/></svg>';
-  btn.setAttribute('aria-label', AMB.sound ? 'Mute study music' : 'Play study music');
-  btn.title = AMB.sound ? 'Mute music' : (AMB.ready ? 'Play study music' : 'Loading music…');
-  $('#music').classList.toggle('playing', AMB.sound);
-}
-
 /* ---------- settings ---------- */
 function renderSettings() {
   const st = stats(S.data.questions);
@@ -866,10 +828,6 @@ function renderSettings() {
     <label>Questions</label>
     <select data-textmode><option value="1">Text where it can be read from the book reliably, images otherwise</option><option value="0">Always the book's own images</option></select>
     <p class="note">Prototype: plain-prose questions, options, passages, data tables and solutions are rebuilt as text; anything with maths, figures or charts stays an image. Each transcribed question has an “original” link.</p>
-    <label>Study music</label>
-    <select data-amb><option value="1">On: blurred video background with sound on demand</option><option value="0">Off</option></select>
-    <input type="text" data-music value="${esc(S.settings.musicUrl || '')}" placeholder="YouTube link" style="margin-top:8px">
-    <p class="note">The video plays muted and blurred behind the page. Press the music button at the bottom left to hear it. Any YouTube video that allows embedding works.</p>
     <label>Theme</label>
     <select data-theme><option value="">System</option><option value="light">Light</option><option value="dark">Dark</option></select>
     <hr>
@@ -882,9 +840,6 @@ function renderSettings() {
   $('[data-textmode]').value = useText() ? '1' : '0';
   $('[data-textmode]').onchange = e => { S.settings.textMode = e.target.value === '1'; saveSettings(); };
   $('[data-save]').onclick = () => { S.settings.apiKey = $('[data-key]').value.trim(); S.settings.model = $('[data-model]').value; saveSettings(); $('#saved').textContent = 'Saved.'; };
-  $('[data-amb]').value = S.settings.ambience === false ? '0' : '1';
-  $('[data-amb]').onchange = e => { S.settings.ambience = e.target.value === '1'; saveSettings(); applyAmbience(); };
-  $('[data-music]').onchange = e => { const v = e.target.value.trim(); if (v && !ytId(v)) { e.target.setCustomValidity('Not a YouTube link'); e.target.reportValidity(); return; } e.target.setCustomValidity(''); S.settings.musicUrl = v; saveSettings(); applyAmbience(); };
   $('[data-theme]').onchange = e => { const v = e.target.value; if (v) document.documentElement.dataset.theme = v; else delete document.documentElement.dataset.theme; localStorage.setItem('catprep.theme', v); };
   $('[data-export]').onclick = () => {
     const blob = new Blob([JSON.stringify(S.progress, null, 1)], { type: 'application/json' });

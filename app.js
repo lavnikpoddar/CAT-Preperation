@@ -13,7 +13,7 @@ const LETTERS = ['a', 'b', 'c', 'd', 'e'];
 const S = {
   data: null, byId: new Map(), chapterQs: new Map(), units: new Map(), unitOf: new Map(),
   progress: load(STORE_KEY, { attempts: {}, bookmarks: {}, sets: {}, last: null }),
-  settings: load(SETTINGS_KEY, { apiKey: '', model: 'claude-opus-5-5', panelW: 400, panelOpen: false, textMode: true, examDate: '2026-11-29' }),
+  settings: load(SETTINGS_KEY, { apiKey: '', model: 'claude-opus-5-5', panelW: 400, panelOpen: false, textMode: true, examDate: '2026-11-29', ambience: true, musicUrl: 'https://www.youtube.com/watch?v=sjkrrmBnpGE', musicVol: 35 }),
   filters: {}, t: null, chats: {}, unit: null, picks: {},
 };
 
@@ -49,7 +49,7 @@ async function init() {
   document.addEventListener('keydown', onKey);
   document.addEventListener('visibilitychange', () => { if (document.hidden && S.t && S.t.running) pause(true); });
   document.querySelectorAll('#nav a[data-ic]').forEach(a => a.insertAdjacentHTML('afterbegin', icon(a.dataset.ic)));
-  initDock(); initPanel();
+  initDock(); initPanel(); initAmbience();
   route();
 }
 
@@ -644,6 +644,60 @@ async function streamClaude(messages, onText) {
   return text;
 }
 
+/* ---------- study music: blurred YouTube video behind frosted-glass cards ---------- */
+const AMB = { player: null, ready: false, sound: false, apiLoading: false };
+function ytId(url) {
+  const m = String(url || '').match(/(?:v=|youtu\.be\/|embed\/|shorts\/|live\/)([\w-]{11})/) || String(url || '').match(/^([\w-]{11})$/);
+  return m ? m[1] : null;
+}
+function initAmbience() {
+  const btn = $('#music-btn'), vol = $('#music-vol');
+  vol.value = S.settings.musicVol ?? 35;
+  btn.onclick = () => toggleSound();
+  vol.oninput = () => { S.settings.musicVol = +vol.value; saveSettings(); if (AMB.ready) AMB.player.setVolume(+vol.value); };
+  applyAmbience();
+}
+function applyAmbience() {
+  const on = S.settings.ambience !== false && !!ytId(S.settings.musicUrl);
+  document.body.classList.toggle('ambient', on);
+  $('#music').hidden = !on;
+  if (!on) { if (AMB.player) { AMB.player.destroy(); AMB.player = null; AMB.ready = false; AMB.sound = false; $('#bg').innerHTML = '<div id="bg-player"></div>'; } renderMusicBtn(); return; }
+  const id = ytId(S.settings.musicUrl);
+  if (AMB.player && AMB.ready) { if (AMB.id !== id) { AMB.id = id; AMB.player.loadVideoById(id); if (!AMB.sound) AMB.player.mute(); } renderMusicBtn(); return; }
+  AMB.id = id;
+  if (window.YT && window.YT.Player) return createPlayer();
+  window.onYouTubeIframeAPIReady = createPlayer;
+  if (!AMB.apiLoading) { AMB.apiLoading = true; const tag = document.createElement('script'); tag.src = 'https://www.youtube.com/iframe_api'; document.head.appendChild(tag); }
+  renderMusicBtn();
+}
+function createPlayer() {
+  if (AMB.player || !document.body.classList.contains('ambient')) return;
+  AMB.player = new YT.Player('bg-player', {
+    videoId: AMB.id,
+    playerVars: { autoplay: 1, mute: 1, controls: 0, loop: 1, playlist: AMB.id, playsinline: 1, rel: 0, disablekb: 1, iv_load_policy: 3, modestbranding: 1, fs: 0 },
+    events: {
+      onReady: e => { AMB.ready = true; e.target.mute(); e.target.setVolume(+(S.settings.musicVol ?? 35)); e.target.playVideo(); renderMusicBtn(); },
+      onStateChange: e => { if (e.data === YT.PlayerState.ENDED) e.target.playVideo(); },
+    },
+  });
+}
+function toggleSound() {
+  if (!AMB.ready) return;
+  AMB.sound = !AMB.sound;
+  if (AMB.sound) { AMB.player.unMute(); AMB.player.setVolume(+(S.settings.musicVol ?? 35)); AMB.player.playVideo(); }
+  else AMB.player.mute();
+  renderMusicBtn();
+}
+function renderMusicBtn() {
+  const btn = $('#music-btn'); if (!btn) return;
+  btn.innerHTML = AMB.sound
+    ? '<svg class="ic" viewBox="0 0 24 24"><path d="M5 10v4h3l4 3.5v-11L8 10z"/><path d="M15.5 9.5a3.5 3.5 0 0 1 0 5M18 7a7 7 0 0 1 0 10"/></svg>'
+    : '<svg class="ic" viewBox="0 0 24 24"><path d="M9 17.5V6l10-2v11.5"/><circle cx="6.5" cy="17.5" r="2.5"/><circle cx="16.5" cy="15.5" r="2.5"/></svg>';
+  btn.setAttribute('aria-label', AMB.sound ? 'Mute study music' : 'Play study music');
+  btn.title = AMB.sound ? 'Mute music' : (AMB.ready ? 'Play study music' : 'Loading music…');
+  $('#music').classList.toggle('playing', AMB.sound);
+}
+
 /* ---------- settings ---------- */
 function renderSettings() {
   const st = stats(S.data.questions);
@@ -669,6 +723,10 @@ function renderSettings() {
     <label>Questions</label>
     <select data-textmode><option value="1">Text where it can be read from the book reliably, images otherwise</option><option value="0">Always the book's own images</option></select>
     <p class="note">Prototype: plain-prose questions, options, passages, data tables and solutions are rebuilt as text; anything with maths, figures or charts stays an image. Each transcribed question has an “original” link.</p>
+    <label>Study music</label>
+    <select data-amb><option value="1">On: blurred video background with sound on demand</option><option value="0">Off</option></select>
+    <input type="text" data-music value="${esc(S.settings.musicUrl || '')}" placeholder="YouTube link" style="margin-top:8px">
+    <p class="note">The video plays muted and blurred behind the page. Press the music button at the bottom left to hear it. Any YouTube video that allows embedding works.</p>
     <label>Theme</label>
     <select data-theme><option value="">System</option><option value="light">Light</option><option value="dark">Dark</option></select>
     <hr>
@@ -681,6 +739,9 @@ function renderSettings() {
   $('[data-textmode]').value = useText() ? '1' : '0';
   $('[data-textmode]').onchange = e => { S.settings.textMode = e.target.value === '1'; saveSettings(); };
   $('[data-save]').onclick = () => { S.settings.apiKey = $('[data-key]').value.trim(); S.settings.model = $('[data-model]').value; saveSettings(); $('#saved').textContent = 'Saved.'; };
+  $('[data-amb]').value = S.settings.ambience === false ? '0' : '1';
+  $('[data-amb]').onchange = e => { S.settings.ambience = e.target.value === '1'; saveSettings(); applyAmbience(); };
+  $('[data-music]').onchange = e => { const v = e.target.value.trim(); if (v && !ytId(v)) { e.target.setCustomValidity('Not a YouTube link'); e.target.reportValidity(); return; } e.target.setCustomValidity(''); S.settings.musicUrl = v; saveSettings(); applyAmbience(); };
   $('[data-theme]').onchange = e => { const v = e.target.value; if (v) document.documentElement.dataset.theme = v; else delete document.documentElement.dataset.theme; localStorage.setItem('catprep.theme', v); };
   $('[data-export]').onclick = () => {
     const blob = new Blob([JSON.stringify(S.progress, null, 1)], { type: 'application/json' });

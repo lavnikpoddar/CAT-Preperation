@@ -18,6 +18,9 @@ import re
 import sys
 import xml.etree.ElementTree as ET
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import transcribe as TX  # noqa: E402
+
 NS = {"x": "http://www.w3.org/1999/xhtml"}
 FIRST_PAGE = 90           # PDF page number of the first page in chapters.xml
 PAGE_W, PAGE_H = 648.0, 828.0
@@ -461,6 +464,13 @@ def main():
     pages_dir = None
     if "--pages" in sys.argv:
         pages_dir = sys.argv[sys.argv.index("--pages") + 1]
+    rules_by_page, figs_by_page = {}, {}
+    if "--drawings" in sys.argv:
+        with open(sys.argv[sys.argv.index("--drawings") + 1]) as f:
+            for k, v in json.load(f).items():
+                rules_by_page[int(k)] = v["rules"]
+                figs_by_page[int(k)] = v["figs"]
+    do_tx = "--drawings" in sys.argv
     pages = load_pages(xml_path)
     words_by_page = {p: page_words(b) for p, b in pages.items()}
     meta_by_page = {p: word_meta(b) for p, b in pages.items()}
@@ -546,7 +556,8 @@ def main():
                 ym = YEAR_RE.search(text)
                 directions[did] = {"id": did, "ch": ch_id, "rects": rects,
                                    "text": text[:4000], "range": rng,
-                                   "year": int(ym.group(1)) if ym else None}
+                                   "year": int(ym.group(1)) if ym else None,
+                                   "tx": TX.transcribe_with_tables(words_by_page, rects, figs_by_page, rules_by_page) if do_tx else None}
                 cur_dir, cur_dir_range = did, rng
                 continue
             if kind == "solgrp":
@@ -584,6 +595,18 @@ def main():
                     so = split_options(rects, words_by_page, meta_by_page, ink_by_page)
                     if so:
                         q["stem"], q["optRects"] = so
+                q["tx"] = None
+                if do_tx:
+                    stem_tx = TX.transcribe(words_by_page, q["stem"] or rects, figs_by_page, strip_marker=True)
+                    opts_tx = None
+                    if q["optRects"]:
+                        opts_tx = [TX.transcribe(words_by_page, o, figs_by_page, strip_marker=True) for o in q["optRects"]]
+                        if any(o is None for o in opts_tx):
+                            opts_tx = None
+                        else:
+                            opts_tx = [" ".join(o) for o in opts_tx]
+                    if stem_tx and (opts_tx or not q["optRects"]):
+                        q["tx"] = {"stem": stem_tx, "opts": opts_tx}
                 questions.append(q)
                 qmap[n] = q
             else:
@@ -594,7 +617,8 @@ def main():
                     continue  # duplicate/noise number inside solutions text
                 sol_expected = n + 1
                 m = ANS_RE.match(text)
-                q["sol"] = {"rects": rects, "text": text[:3000]}
+                q["sol"] = {"rects": rects, "text": text[:3000],
+                            "tx": TX.transcribe(words_by_page, rects, figs_by_page, strip_marker=True) if do_tx else None}
                 if m:
                     q["ans"] = m.group(1)
                 if cur_solgrp and cur_solgrp[1] and cur_solgrp[1][0] <= n <= cur_solgrp[1][1]:
@@ -607,8 +631,9 @@ def main():
         nans = sum(1 for q in qs if q["ans"])
         nyear = sum(1 for q in qs if q["year"])
         nopt = sum(1 for q in qs if q["optRects"])
+        ntx = sum(1 for q in qs if q.get("tx"))
         report.append(f"ch{num:02d} {title[:28]:28s} pages {start}-{end} "
-                      f"q={len(qs):4d} sol={nsol:4d} ans={nans:4d} year={nyear:4d} opt={nopt:4d} "
+                      f"q={len(qs):4d} sol={nsol:4d} ans={nans:4d} year={nyear:4d} opt={nopt:4d} tx={ntx:4d} "
                       f"seq_issues={len(seq_issues)} {seq_issues[:6]}")
 
     data = {"book": "Face 2 Face CAT – Sectionwise & Topicwise Solved Papers 1993-2019 (Arihant)",

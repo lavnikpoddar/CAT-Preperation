@@ -13,7 +13,7 @@ const LETTERS = ['a', 'b', 'c', 'd', 'e'];
 const S = {
   data: null, byId: new Map(), chapterQs: new Map(), units: new Map(), unitOf: new Map(),
   progress: load(STORE_KEY, { attempts: {}, bookmarks: {}, sets: {}, last: null }),
-  settings: load(SETTINGS_KEY, { apiKey: '', model: 'claude-opus-5-5', panelW: 400, panelOpen: false }),
+  settings: load(SETTINGS_KEY, { apiKey: '', model: 'claude-opus-5-5', panelW: 400, panelOpen: false, textMode: true }),
   filters: {}, t: null, chats: {}, unit: null, picks: {},
 };
 
@@ -78,8 +78,10 @@ function route() {
   flushUnit();
   S.unit = null; S.picks = {};
   const h = location.hash || '#/';
-  const m = h.match(/^#\/(ch|q)\/([^/?]+)/);
+  const m = h.match(/^#\/(ch|q|sec)\/([^/?]+)/);
   const isQ = !!(m && m[1] === 'q');
+  const navKey = h.startsWith('#/settings') ? 'settings' : m && m[1] === 'sec' ? m[2] : m ? chapter(m[1] === 'q' ? S.byId.get(m[2]).ch : m[2]).section : 'home';
+  document.querySelectorAll('#nav a').forEach(a => a.classList.toggle('on', a.dataset.nav === navKey));
   document.body.classList.toggle('wide', isQ);
   document.body.classList.toggle('has-dock', isQ);
   $('#dock').hidden = !isQ;
@@ -87,6 +89,7 @@ function route() {
   if (!isQ) closePanel(true);
   if (h.startsWith('#/settings')) renderSettings();
   else if (m && m[1] === 'ch') renderChapter(m[2]);
+  else if (m && m[1] === 'sec') renderSection(m[2]);
   else if (isQ) renderUnit(m[2]);
   else renderDashboard();
   window.scrollTo(0, 0);
@@ -110,7 +113,7 @@ function renderDashboard() {
   for (const [sec, name] of Object.entries(S.data.sections)) {
     const chs = S.data.chapters.filter(c => c.section === sec);
     const ss = stats(chs.flatMap(c => S.chapterQs.get(c.id) || []));
-    html += `<div class="sec-head"><h2>${esc(name)}</h2><span>${ss.attempted} / ${ss.total}${accuracy(ss) ? ' · ' + accuracy(ss) : ''}</span></div><div class="rows">`;
+    html += `<div class="sec-head"><h2><a href="#/sec/${sec}">${esc(name)}</a></h2><span>${ss.attempted} / ${ss.total}${accuracy(ss) ? ' · ' + accuracy(ss) : ''}</span></div><div class="rows">`;
     for (const c of chs) {
       const cs = stats(S.chapterQs.get(c.id) || []);
       html += `<a class="row" href="#/ch/${c.id}"><span class="n">${c.num}</span><span class="t">${esc(c.title)}${bar(cs)}</span><span class="r">${cs.attempted} / ${cs.total}</span></a>`;
@@ -118,6 +121,17 @@ function renderDashboard() {
     html += `</div>`;
   }
   app().innerHTML = html;
+}
+function renderSection(sec) {
+  const name = S.data.sections[sec]; if (!name) return renderDashboard();
+  const chs = S.data.chapters.filter(c => c.section === sec);
+  const ss = stats(chs.flatMap(c => S.chapterQs.get(c.id) || []));
+  let html = `<h1>${esc(name)}</h1><p class="lead">${ss.total} questions · ${ss.attempted} attempted${accuracy(ss) ? ' · ' + accuracy(ss) : ''}${ss.time ? ' · ' + fmtTime(ss.time) : ''}</p><div class="rows" style="margin-top:18px">`;
+  for (const c of chs) {
+    const cs = stats(S.chapterQs.get(c.id) || []);
+    html += `<a class="row" href="#/ch/${c.id}"><span class="n">${c.num}</span><span class="t">${esc(c.title)}${bar(cs)}</span><span class="r">${cs.attempted} / ${cs.total}</span></a>`;
+  }
+  app().innerHTML = html + '</div>';
 }
 function bar(st) {
   const p = n => st.total ? (100 * n / st.total) + '%' : '0%';
@@ -134,7 +148,7 @@ function renderChapter(chId) {
   const units = S.units.get(chId).map(u => ({ u, qs: u.qs.filter(match) })).filter(x => x.qs.length);
   const cs = stats(qs);
   const firstU = units.find(x => x.qs.some(q => !attempt(q.id))) || units[0];
-  let html = `<a class="back" href="#/">Dashboard</a>
+  let html = `<a class="back" href="#/sec/${c.section}">${esc(S.data.sections[c.section])}</a>
   <h1>${esc(c.title)}</h1>
   <p class="lead">${cs.total} questions · ${cs.attempted} attempted${accuracy(cs) ? ' · ' + accuracy(cs) : ''}${cs.time ? ' · ' + fmtTime(cs.time) : ''}</p>
   <div class="years"><a class="${f.year === 'all' ? 'on' : ''}" data-year="all">All years</a>${years.map(y => `<a class="${f.year === String(y) ? 'on' : ''}" data-year="${y}">${y}</a>`).join('')}</div>
@@ -178,6 +192,13 @@ function cropSVG(r, scale) {
   return `<svg class="crop" viewBox="${x0} ${y0} ${w} ${h}" style="aspect-ratio:${w}/${h};width:${width}" preserveAspectRatio="xMinYMin meet"><image href="${PAGE_IMG(p)}" x="0" y="0" width="${PW}" height="${PH}"/></svg>`;
 }
 const crops = (rects, scale) => `<div class="crops">${rects.map(r => cropSVG(r, scale)).join('')}</div>`;
+const useText = () => S.settings.textMode !== false;
+const parasHTML = paras => `<div class="tx">${paras.map(p => `<p>${esc(p)}</p>`).join('')}</div>`;
+function blocksHTML(blocks) {
+  return `<div class="tx">${blocks.map(b => b.t === 'table'
+    ? `<table class="dt">${b.rows.map((r, i) => `<tr>${r.map(c => `<${i === 0 ? 'th' : 'td'}>${esc(c)}</${i === 0 ? 'th' : 'td'}>`).join('')}</tr>`).join('')}</table>`
+    : `<p>${esc(b.text)}</p>`).join('')}</div>`;
+}
 
 /* ---------- question unit (a set or a single question) ---------- */
 function renderUnit(qid) {
@@ -196,7 +217,7 @@ function renderUnit(qid) {
     <span>${u.qs.length > 1 ? `${u.qs.length} questions · click a question to time it` : ''}</span>
   </div>
   <div class="unit ${d ? 'has-ctx' : ''}">
-    ${d ? `<div class="context">${crops(d.rects, 1.6)}</div>` : ''}
+    ${d ? `<div class="context">${useText() && d.tx ? blocksHTML(d.tx) : crops(d.rects, 1.6)}</div>` : ''}
     <div class="qs">${u.qs.map(q => qblockHTML(q)).join('')}</div>
   </div>`;
   u.qs.forEach(q => bindQblock(q));
@@ -209,9 +230,10 @@ function renderUnit(qid) {
 function qblockHTML(q) {
   const a = attempt(q.id);
   const stemRects = q.optRects && q.stem ? q.stem : q.rects;
+  const tx = useText() && q.tx;
   return `<div class="qblock ${a ? 'done' : ''}" id="qb-${q.id}" data-q="${q.id}">
-    <div class="qhead"><span>Q${q.n}${a ? '' : ''}</span><span><span class="qt" id="qt-${q.id}">${a ? fmtTime(a.time) : ''}</span> <a class="bm" data-bm="${q.id}">${S.progress.bookmarks[q.id] ? '★' : '☆'}</a></span></div>
-    <div class="stem">${crops(stemRects, 1.6)}</div>
+    <div class="qhead"><span>Q${q.n}${tx ? ' <a class="orig" data-orig="' + q.id + '">original</a>' : ''}</span><span><span class="qt" id="qt-${q.id}">${a ? fmtTime(a.time) : ''}</span> <a class="bm" data-bm="${q.id}">${S.progress.bookmarks[q.id] ? '★' : '☆'}</a></span></div>
+    <div class="stem">${tx ? parasHTML(tx.stem) : crops(stemRects, 1.6)}</div>
     <div class="answer" id="ans-${q.id}">${answerHTML(q, a)}</div>
     <div id="after-${q.id}">${a ? afterHTML(q, a) : ''}</div>
   </div>`;
@@ -221,7 +243,8 @@ function answerHTML(q, a) {
   const cls = (o) => !a ? '' : o === q.ans ? 'ok' : o === a.ans ? (a.result === 'wrong' ? 'bad' : 'sel') : '';
   const dis = a ? 'disabled' : '';
   if (q.optRects) {
-    return `<div class="opts">${q.optRects.map((r, i) => `<button class="opt ${cls(LETTERS[i])}" data-opt="${LETTERS[i]}" ${dis}><span class="l">${LETTERS[i].toUpperCase()}</span>${crops(r, 1.6)}</button>`).join('')}</div>`;
+    const tx = useText() && q.tx && q.tx.opts;
+    return `<div class="opts">${q.optRects.map((r, i) => `<button class="opt ${cls(LETTERS[i])}" data-opt="${LETTERS[i]}" ${dis}><span class="l">${LETTERS[i].toUpperCase()}</span>${tx ? `<span class="ot">${esc(tx[i])}</span>` : crops(r, 1.6)}</button>`).join('')}</div>`;
   }
   if (q.type === 'MCQ' && q.opts) {
     return `<div class="letters">${LETTERS.slice(0, 4).map(o => `<button class="opt ${cls(o)}" data-opt="${o}" ${dis}>${o}</button>`).join('')}</div>`;
@@ -232,6 +255,8 @@ function answerHTML(q, a) {
 
 function bindQblock(q) {
   const el = $(`#qb-${q.id}`);
+  const orig = el.querySelector('[data-orig]');
+  if (orig) orig.onclick = e => { e.stopPropagation(); showOriginal(q); };
   el.querySelector('[data-bm]').onclick = e => { e.stopPropagation(); S.progress.bookmarks[q.id] = !S.progress.bookmarks[q.id]; save(); e.target.textContent = S.progress.bookmarks[q.id] ? '★' : '☆'; };
   if (attempt(q.id)) { bindAfter(q); return; }
   el.addEventListener('click', () => activate(q.id));
@@ -282,7 +307,7 @@ function afterHTML(q, a) {
     ? `<span><a data-mark="correct">right</a> · <a data-mark="wrong">wrong</a> · <span class="muted">no key for this one</span></span>`
     : `<span>${marks}${q.ans ? ' · key ' + esc(q.ans).toUpperCase() : ''} · <a data-retry>retry</a></span>`;
   return `<div class="verdict ${r}"><b>${label}</b>${right}</div>
-  <div class="sol"><div class="lbl">Solution</div>${g ? crops(g.rects, 1.6) : ''}${q.sol ? crops(q.sol.rects, 1.6) : '<p class="muted small">The book has no solution for this question.</p>'}</div>`;
+  <div class="sol"><div class="lbl">Solution</div>${g ? crops(g.rects, 1.6) : ''}${q.sol ? (useText() && q.sol.tx ? parasHTML(q.sol.tx) : crops(q.sol.rects, 1.6)) : '<p class="muted small">The book has no solution for this question.</p>'}</div>`;
 }
 function bindAfter(q) {
   const el = $(`#qb-${q.id}`);
@@ -293,6 +318,22 @@ function bindAfter(q) {
   const retry = el.querySelector('[data-retry]');
   if (retry) retry.onclick = () => { delete S.progress.attempts[q.id]; save(); renderUnit(q.id); };
 }
+
+function showOriginal(q) {
+  const d = q.dir && S.data.directions[q.dir];
+  openZoom(`${d ? crops(d.rects, 2.2) : ''}${crops(q.rects, 2.2)}`);
+}
+function openZoom(inner) {
+  let z = $('#zoom');
+  if (!z) { z = document.createElement('div'); z.id = 'zoom'; document.body.appendChild(z); z.onclick = e => { if (e.target === z) z.remove(); }; }
+  z.innerHTML = `<div class="zoom-in">${inner}</div>`;
+}
+document.addEventListener('click', e => {
+  const svg = e.target.closest('.crop');
+  if (!svg || e.target.closest('.opt') || e.target.closest('#zoom')) return;
+  if (window.innerWidth > 860) return;            // tap to zoom on small screens
+  openZoom(svg.outerHTML.replace(/style="[^"]*"/, 'style="width:200%"'));
+});
 
 /* ---------- timing: one clock for the unit, one per question ---------- */
 function startUnit(u, q0) {
@@ -563,6 +604,9 @@ function renderSettings() {
     <p class="note">${st.attempted} attempts, ${fmtTime(st.time)} recorded, ${Object.values(S.progress.bookmarks).filter(Boolean).length} bookmarks. Stored in this browser only.</p>
     <p class="actions"><button class="btn" data-export>Export</button><button class="btn" data-import>Import</button><input type="file" accept="application/json" data-file hidden><button class="btn quiet" data-reset>Reset everything</button></p>
     <hr>
+    <label>Questions</label>
+    <select data-textmode><option value="1">Text where it can be read from the book reliably, images otherwise</option><option value="0">Always the book's own images</option></select>
+    <p class="note">Prototype: plain-prose questions, options, passages, data tables and solutions are rebuilt as text; anything with maths, figures or charts stays an image. Each transcribed question has an “original” link.</p>
     <label>Theme</label>
     <select data-theme><option value="">System</option><option value="light">Light</option><option value="dark">Dark</option></select>
     <hr>
@@ -571,6 +615,8 @@ function renderSettings() {
   </div>`;
   $('[data-model]').value = S.settings.model;
   $('[data-theme]').value = document.documentElement.dataset.theme || '';
+  $('[data-textmode]').value = useText() ? '1' : '0';
+  $('[data-textmode]').onchange = e => { S.settings.textMode = e.target.value === '1'; saveSettings(); };
   $('[data-save]').onclick = () => { S.settings.apiKey = $('[data-key]').value.trim(); S.settings.model = $('[data-model]').value; saveSettings(); $('#saved').textContent = 'Saved.'; };
   $('[data-theme]').onchange = e => { const v = e.target.value; if (v) document.documentElement.dataset.theme = v; else delete document.documentElement.dataset.theme; localStorage.setItem('catprep.theme', v); };
   $('[data-export]').onclick = () => {

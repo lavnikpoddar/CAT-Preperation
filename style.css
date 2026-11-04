@@ -44,14 +44,12 @@ p { margin: 0 0 8px; }
 hr { border: 0; border-top: 1px solid var(--line); margin: 28px 0; }
 
 /* header */
-.top {
-  display: flex; justify-content: space-between; align-items: center;
-  max-width: var(--col); margin: 0 auto; padding: 22px 20px 0;
-  font-size: 13px; color: var(--muted);
-}
-body.wide .top { max-width: var(--wide); }
-.brand { font-weight: 600; color: var(--fg); }
-.navlink:hover, .back:hover { color: var(--fg); }
+.top { display: flex; justify-content: center; padding: 18px 20px 0; }
+#nav { display: flex; gap: 4px; font-size: 13px; color: var(--muted); }
+#nav a { padding: 6px 12px; border-radius: 999px; transition: color .15s, background .15s; }
+#nav a:hover { color: var(--fg); }
+#nav a.on { color: var(--fg); background: var(--soft); }
+.back:hover { color: var(--fg); }
 main { max-width: var(--col); margin: 0 auto; padding: 32px 20px 60px; transition: padding-right .25s ease; }
 body.wide main { max-width: var(--wide); }
 body.ai-open main { padding-right: calc(var(--panel-w) + 20px); }
@@ -231,4 +229,21 @@ body.ai-open #ai-panel { transform: none; }
   .dock-mid .btn { white-space: nowrap; padding: 6px 10px; font-size: 13px; }
   .umeta { margin-bottom: 12px; }
   .stats { gap: 22px; }
+}
+
+/* transcribed text */
+.tx p { margin: 0 0 10px; font-size: 15px; line-height: 1.6; }
+.tx p:last-child { margin-bottom: 0; }
+.context .tx p { font-size: 14.5px; }
+.ot { font-size: 15px; line-height: 1.45; }
+.dt { border-collapse: collapse; margin: 10px 0; font-size: 13.5px; width: 100%; }
+.dt th, .dt td { border-bottom: 1px solid var(--line); padding: 5px 8px; text-align: left; font-variant-numeric: tabular-nums; }
+.dt th { font-weight: 600; }
+.orig { color: var(--muted); font-size: 11px; margin-left: 8px; cursor: pointer; }
+.orig:hover { color: var(--fg); }
+#zoom { position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 50; overflow: auto; padding: 24px 12px; cursor: zoom-out; }
+.zoom-in { background: var(--img-bg); border-radius: 10px; padding: 12px; max-width: 1100px; margin: 0 auto; overflow-x: auto; cursor: default; }
+@media (max-width: 860px) {
+  .crops .crop { width: 100% !important; cursor: zoom-in; }
+  .opt .crops .crop { cursor: pointer; }
 }

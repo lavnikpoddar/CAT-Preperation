@@ -1,7 +1,7 @@
 {
   // Cloudflare Workers static site: serves this folder as assets.
   // Deploy with `npx wrangler deploy` (or connect the repo in the Cloudflare dashboard).
-  "name": "cat-prep",
+  "name": "cat-preperation",
   "compatibility_date": "2026-11-04",
   "assets": {
     "directory": "./",

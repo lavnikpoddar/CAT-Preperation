@@ -510,42 +510,115 @@ function onKey(e) {
 }
 
 /* ---------- AI tutor panel ---------- */
-const TUTOR_SYSTEM = `You are a tutor for the CAT (Common Admission Test, India). The student is practising a past-paper question from a solved-papers book. You get the question as an image cropped from the book (plus the directions/data set when there is one), a rough text extraction that may garble maths, and, when known, the answer key.
-Rules: use plain text with simple inline maths (no LaTeX, no markdown headings). Be concise and concrete. For a "hint" give one nudge that unlocks the next step and never state the final answer. For "explain" give a clean step-by-step solution and end with the final answer. For "why wrong" first find the student's likely error, then correct it. If the extraction and the image disagree, trust the image. Mention exam strategy (time, elimination, when to skip) only when it is genuinely useful.`;
+const TUTOR_SYSTEM = `You are a tutor for the CAT (Common Admission Test, India). The student is practising a past-paper question from a solved-papers book. You get the question as an image cropped from the book (plus the directions, data set or passage when there is one), a rough text extraction that may garble maths, and, when known, the answer key.
+Write for a phone-sized panel: short paragraphs, light Markdown (bold, numbered steps, bullet lists) and simple inline maths such as x^2 or (a+b)/2. Never use LaTeX, tables or headings. Be concise and concrete.
+For a hint, give one nudge that unlocks the next step and never state the final answer. For an explanation, give a clean step-by-step solution and end with the final answer in bold. When asked why an answer was wrong, first find the likely error, then correct it. If the extraction and the image disagree, trust the image. Mention exam strategy (time, elimination, when to skip) only when it genuinely helps.`;
+const MODEL_NAMES = { 'claude-opus-5-5': 'Opus 5.5', 'claude-sonnet-5-5': 'Sonnet 5.5', 'claude-haiku-5-5': 'Haiku 5.5' };
+const AI = { busy: false, ctrl: null, stick: true };
 
 function initPanel() {
-  document.documentElement.style.setProperty('--panel-w', (S.settings.panelW || 400) + 'px');
+  document.documentElement.style.setProperty('--panel-w', (S.settings.panelW || 420) + 'px');
+  const ta = $('#ai-input'), scroll = $('#ai-scroll');
   $('#ai-toggle').onclick = openPanel;
   $('#ai-close').onclick = () => closePanel();
-  $('#ai-form').onsubmit = e => { e.preventDefault(); const q = panelQ(); if (q) askAI(q, 'ask'); };
-  $('#ai-input').onkeydown = e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); const q = panelQ(); if (q) askAI(q, 'ask'); } };
+  $('#ai-new').onclick = () => { const q = panelQ(); if (!q || AI.busy) return; delete S.chats[q.id]; panelFor(q); ta.focus(); };
+  $('#ai-form').onsubmit = e => { e.preventDefault(); if (AI.busy) { AI.ctrl && AI.ctrl.abort(); return; } const q = panelQ(); if (q) askAI(q, 'ask'); };
+  ta.oninput = () => { growInput(); syncSend(); };
+  ta.onkeydown = e => {
+    if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && window.matchMedia('(hover: hover)').matches) { e.preventDefault(); $('#ai-form').requestSubmit(); }
+    if (e.key === 'Escape') closePanel();
+  };
+  scroll.onscroll = () => { AI.stick = scroll.scrollHeight - scroll.scrollTop - scroll.clientHeight < 40; };
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && document.body.classList.contains('ai-open') && !e.target.matches('textarea')) closePanel(); });
   const handle = $('.ai-resize');
   handle.onpointerdown = e => {
     e.preventDefault(); handle.setPointerCapture(e.pointerId);
-    const move = ev => { const w = Math.min(680, Math.max(300, window.innerWidth - ev.clientX)); document.documentElement.style.setProperty('--panel-w', w + 'px'); S.settings.panelW = w; };
+    const move = ev => { const w = Math.min(720, Math.max(340, window.innerWidth - ev.clientX)); document.documentElement.style.setProperty('--panel-w', w + 'px'); S.settings.panelW = w; };
     const up = () => { handle.removeEventListener('pointermove', move); handle.removeEventListener('pointerup', up); saveSettings(); };
     handle.addEventListener('pointermove', move); handle.addEventListener('pointerup', up);
   };
 }
+function growInput() { const ta = $('#ai-input'); ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight, 180) + 'px'; }
+function syncSend() {
+  const b = $('#ai-send');
+  b.classList.toggle('stop', AI.busy);
+  b.disabled = !AI.busy && !$('#ai-input').value.trim();
+  b.setAttribute('aria-label', AI.busy ? 'Stop' : 'Send');
+  b.innerHTML = AI.busy ? '<svg class="ic" viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="10" rx="2" fill="currentColor" stroke="none"/></svg>'
+                        : '<svg class="ic" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></svg>';
+}
 const panelQ = () => S.panelQ || activeQ() || (S.unit && S.unit.qs[0]);
-function openPanel() { $('#ai-panel').hidden = false; document.body.classList.add('ai-open'); S.settings.panelOpen = true; saveSettings(); setTimeout(() => $('#ai-input').focus(), 250); }
+function openPanel() {
+  $('#ai-panel').hidden = false; document.body.classList.add('ai-open');
+  S.settings.panelOpen = true; saveSettings();
+  if (window.matchMedia('(hover: hover)').matches) setTimeout(() => $('#ai-input').focus(), 260);
+  scrollThread(true);
+}
 function closePanel(silent) { document.body.classList.remove('ai-open'); if (!silent) { S.settings.panelOpen = false; saveSettings(); } }
 function togglePanel() { document.body.classList.contains('ai-open') ? closePanel() : openPanel(); }
+function scrollThread(force) { const sc = $('#ai-scroll'); if (force || AI.stick) sc.scrollTop = sc.scrollHeight; }
+
+/* minimal, safe Markdown: escape first, then paragraphs, lists, bold, italics, code */
+function md(src) {
+  const inline = t => esc(t)
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/(^|[^*\w])\*([^*\n]+)\*(?!\*)/g, '$1<em>$2</em>')
+    .replace(/\^(\d+|\([^)]+\))/g, '<sup>$1</sup>');
+  const out = []; let list = null, para = [], code = null;
+  const flush = () => { if (para.length) { out.push(`<p>${para.map(inline).join('<br>')}</p>`); para = []; } if (list) { out.push(`<${list.t}>${list.items.map(x => `<li>${inline(x)}</li>`).join('')}</${list.t}>`); list = null; } };
+  for (const line of String(src).split('\n')) {
+    if (code !== null) { if (/^```/.test(line)) { out.push(`<pre><code>${esc(code.join('\n'))}</code></pre>`); code = null; } else code.push(line); continue; }
+    if (/^```/.test(line)) { flush(); code = []; continue; }
+    const ul = line.match(/^\s*[-*•]\s+(.*)/), ol = line.match(/^\s*\d+[.)]\s+(.*)/), h = line.match(/^#{1,6}\s+(.*)/);
+    if (ul || ol) { const t = ul ? 'ul' : 'ol'; if (para.length) flush(); if (!list || list.t !== t) { flush(); list = { t, items: [] }; } list.items.push((ul || ol)[1]); continue; }
+    if (!line.trim()) { flush(); continue; }
+    if (h) { flush(); out.push(`<p><strong>${inline(h[1])}</strong></p>`); continue; }
+    if (list) { if (/^\s{2,}/.test(line)) { list.items[list.items.length - 1] += ' ' + line.trim(); continue; } flush(); }
+    para.push(line);
+  }
+  if (code !== null) out.push(`<pre><code>${esc(code.join('\n'))}</code></pre>`);
+  flush();
+  return out.join('');
+}
+
+function msgHTML(m) {
+  if (m.role === 'user') return `<div class="msg user">${esc(m.text)}</div>`;
+  if (m.role === 'err') return `<div class="msg err">${esc(m.text)} <a data-retry-ai>Try again</a></div>`;
+  return `<div class="msg ai"><div class="md">${md(m.text)}</div><div class="msg-actions"><button class="icon" data-copy title="Copy" aria-label="Copy"><svg class="ic" viewBox="0 0 24 24"><rect x="8.5" y="8.5" width="11" height="11" rx="2"/><path d="M15.5 8.5V6a1.5 1.5 0 0 0-1.5-1.5H6A1.5 1.5 0 0 0 4.5 6v8A1.5 1.5 0 0 0 6 15.5h2.5"/></svg></button></div></div>`;
+}
 
 function panelFor(q) {
   if (!q) return;
   S.panelQ = q;
   const a = attempt(q.id);
-  $('#ai-sub').textContent = `${chapter(q.ch).title} · Q${q.n}` + (S.settings.apiKey ? ` · ${S.settings.model}` : '');
-  $('#ai-quick').innerHTML = `<button class="btn" data-ai="hint">Hint</button><button class="btn" data-ai="explain">Explain</button>${a && a.result !== 'correct' ? '<button class="btn" data-ai="why">Why was I wrong?</button>' : ''}`;
+  const c = S.chats[q.id];
+  $('#ai-sub').textContent = `${chapter(q.ch).title} · Q${q.n}`;
+  $('#ai-model').textContent = S.settings.apiKey ? (MODEL_NAMES[S.settings.model] || S.settings.model) : '';
+  const chips = [['hint', 'Give me a hint'], ['explain', 'Explain step by step']];
+  if (a && a.result !== 'correct') chips.push(['why', 'Why was I wrong?']);
+  $('#ai-quick').innerHTML = chips.map(([k, l]) => `<button type="button" class="chip-btn" data-ai="${k}">${l}</button>`).join('');
   $('#ai-quick').querySelectorAll('[data-ai]').forEach(b => b.onclick = () => askAI(q, b.dataset.ai));
   const chat = $('#chat');
-  chat.innerHTML = '';
-  if (!S.settings.apiKey) chat.innerHTML = `<div class="msg hint">Add your Anthropic API key in <a href="#/settings"><u>Settings</u></a> to use the tutor.</div>`;
-  const c = S.chats[q.id];
-  if (c) for (const m of c.shown) chat.insertAdjacentHTML('beforeend', `<div class="msg ${m.role}">${esc(m.text)}</div>`);
+  if (!c || !c.shown.length) {
+    chat.innerHTML = S.settings.apiKey
+      ? `<div class="ai-empty"><div class="ai-mark"><svg class="ic" viewBox="0 0 24 24"><path d="M12 3.5l1.9 5.1 5.1 1.9-5.1 1.9L12 17.5l-1.9-5.1L5 10.5l5.1-1.9z"/></svg></div><p class="ai-hello">How can I help with Q${q.n}?</p><p class="muted small">I can see the question${q.dir ? ' and its passage or data' : ''}${q.ans ? ' and the answer key' : ''}.</p></div>`
+      : `<div class="ai-empty"><div class="ai-mark"><svg class="ic" viewBox="0 0 24 24"><path d="M12 3.5l1.9 5.1 5.1 1.9-5.1 1.9L12 17.5l-1.9-5.1L5 10.5l5.1-1.9z"/></svg></div><p class="ai-hello">Add your API key to start</p><p class="muted small">The tutor uses your Anthropic API key, kept in this browser. <a href="#/settings"><u>Open Settings</u></a></p></div>`;
+  } else chat.innerHTML = c.shown.map(msgHTML).join('');
+  $('#ai-panel').classList.toggle('has-thread', !!(c && c.shown.length));
+  bindThread(q);
+  syncSend();
+  scrollThread(true);
 }
-
+function bindThread(q) {
+  const chat = $('#chat');
+  chat.querySelectorAll('[data-copy]').forEach(b => b.onclick = () => {
+    const text = b.closest('.msg').querySelector('.md').innerText;
+    navigator.clipboard && navigator.clipboard.writeText(text).then(() => { b.classList.add('done'); setTimeout(() => b.classList.remove('done'), 1200); });
+  });
+  const r = chat.querySelector('[data-retry-ai]');
+  if (r) r.onclick = () => { const c = S.chats[q.id]; const last = c && c.shown.filter(m => m.role === 'user').pop(); if (!last) return; c.shown = c.shown.filter(m => m.role !== 'err'); c.shown.pop(); c.messages.pop(); panelFor(q); askAI(q, 'ask', last.text); };
+}
 async function questionImage(q) {
   const rects = [];
   const d = q.dir && S.data.directions[q.dir];
@@ -569,43 +642,57 @@ async function questionImage(q) {
 }
 const loadImg = src => new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = src; });
 
-async function askAI(q, mode) {
-  const chat = $('#chat'), ta = $('#ai-input');
+async function askAI(q, mode, retryText) {
+  if (AI.busy) return;
+  const ta = $('#ai-input');
   if (!S.settings.apiKey) { openPanel(); return; }
   const a = attempt(q.id);
   let userText;
-  if (mode === 'hint') userText = 'Give me a hint for this question. Do not reveal the answer.';
-  else if (mode === 'explain') userText = 'Explain how to solve this question step by step, then give the final answer.';
-  else if (mode === 'why') userText = `I answered "${(a && a.ans) || '(skipped)'}"${q.ans ? ` and the key says "${q.ans}"` : ''}. Why is my answer wrong, and what is the right approach?`;
-  else { userText = (ta.value || '').trim(); if (!userText) return; ta.value = ''; }
+  if (retryText) userText = retryText;
+  else if (mode === 'hint') userText = 'Give me a hint.';
+  else if (mode === 'explain') userText = 'Explain this step by step.';
+  else if (mode === 'why') userText = `I answered ${(a && a.ans) ? '“' + a.ans.toUpperCase() + '”' : 'nothing (I skipped it)'}${q.ans ? ` and the key says “${q.ans.toUpperCase()}”` : ''}. Why was I wrong?`;
+  else { userText = (ta.value || '').trim(); if (!userText) return; ta.value = ''; growInput(); }
+  if (!document.body.classList.contains('ai-open')) openPanel();
 
   let c = S.chats[q.id];
-  if (!c) {
+  if (!c) c = S.chats[q.id] = { messages: [], shown: [] };
+  if (!c.messages.length) {
+    // first turn carries the question image and context
     const img = await questionImage(q).catch(() => null);
     const ctxText = `Chapter: ${chapter(q.ch).title}. ${q.year ? 'CAT ' + q.year + '. ' : ''}Type: ${q.type}. ${q.ans ? 'Answer key: ' + q.ans + '.' : 'Answer key not available.'}\nDirections (text extraction): ${q.dir ? S.data.directions[q.dir].text : '(none)'}\nQuestion (text extraction): ${q.text}`;
     const content = [];
     if (img) content.push({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: img } });
-    content.push({ type: 'text', text: ctxText });
-    c = S.chats[q.id] = { messages: [{ role: 'user', content }, { role: 'assistant', content: 'Understood. I have the question. What do you need?' }], shown: [] };
-  }
-  c.messages.push({ role: 'user', content: userText });
+    content.push({ type: 'text', text: ctxText }, { type: 'text', text: userText });
+    c.messages.push({ role: 'user', content });
+  } else c.messages.push({ role: 'user', content: userText });
   c.shown.push({ role: 'user', text: userText });
-  chat.insertAdjacentHTML('beforeend', `<div class="msg user">${esc(userText)}</div><div class="msg ai">…</div>`);
-  const out = chat.lastElementChild; chat.scrollTop = chat.scrollHeight;
-  $('#ai-quick').querySelectorAll('button').forEach(b => b.disabled = true);
+
+  const chat = $('#chat');
+  if (c.shown.length === 1) chat.innerHTML = '';
+  $('#ai-panel').classList.add('has-thread');
+  chat.insertAdjacentHTML('beforeend', msgHTML({ role: 'user', text: userText }) + '<div class="msg ai streaming"><div class="md"><span class="typing"><i></i><i></i><i></i></span></div></div>');
+  const out = chat.lastElementChild.querySelector('.md');
+  AI.busy = true; AI.stick = true; AI.ctrl = new AbortController(); syncSend(); scrollThread(true);
+  let text = '';
   try {
-    const text = await streamClaude(c.messages, t => { out.textContent = t; chat.scrollTop = chat.scrollHeight; });
+    text = await streamClaude(c.messages, t => { text = t; out.innerHTML = md(t); scrollThread(); }, AI.ctrl.signal);
     c.messages.push({ role: 'assistant', content: text });
     c.shown.push({ role: 'ai', text });
   } catch (err) {
-    c.messages.pop(); c.shown.pop();
-    out.className = 'msg err'; out.textContent = 'Request failed: ' + err.message;
+    if (err.name === 'AbortError' && text) {
+      c.messages.push({ role: 'assistant', content: text }); c.shown.push({ role: 'ai', text });
+    } else {
+      c.messages.pop();
+      c.shown.push({ role: 'err', text: err.name === 'AbortError' ? 'Stopped.' : 'Something went wrong: ' + err.message });
+    }
   } finally {
-    $('#ai-quick').querySelectorAll('button').forEach(b => b.disabled = false);
+    AI.busy = false; AI.ctrl = null;
+    if (S.panelQ === q) panelFor(q); else syncSend();
   }
 }
 
-async function streamClaude(messages, onText) {
+async function streamClaude(messages, onText, signal) {
   const model = S.settings.model || 'claude-opus-5-5';
   const headers = {
     'content-type': 'application/json',
@@ -619,7 +706,7 @@ async function streamClaude(messages, onText) {
     headers['anthropic-beta'] = 'server-side-fallback-2026-07-01';
     body.fallbacks = 'default';
   }
-  const res = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers, body: JSON.stringify(body) });
+  const res = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers, body: JSON.stringify(body), signal });
   if (!res.ok) {
     let msg = res.status + ' ' + res.statusText;
     try { const j = await res.json(); msg = (j.error && j.error.message) || msg; } catch (e) { /* ignore */ }

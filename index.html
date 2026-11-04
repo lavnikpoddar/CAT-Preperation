@@ -43,19 +43,28 @@
   </div>
 </div>
 
-<button id="ai-toggle" type="button" hidden aria-label="Open AI tutor">AI</button>
-<aside id="ai-panel" aria-label="AI tutor" hidden>
+<button id="ai-toggle" type="button" hidden aria-label="Ask the tutor">
+  <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l1.9 5.1 5.1 1.9-5.1 1.9L12 17.5l-1.9-5.1L5 10.5l5.1-1.9z"/><path d="M18.5 15.5l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z"/></svg>
+  <span>Ask</span>
+</button>
+<aside id="ai-panel" aria-label="Tutor" hidden>
   <div class="ai-resize" title="Drag to resize"></div>
-  <div class="ai-head">
-    <div><div class="ai-title">Tutor</div><div class="ai-sub" id="ai-sub"></div></div>
-    <button class="icon" id="ai-close" type="button" aria-label="Close">×</button>
+  <header class="ai-head">
+    <div class="ai-title"><span>Tutor</span><span class="ai-sub" id="ai-sub"></span></div>
+    <button class="icon" id="ai-new" type="button" title="Start over" aria-label="Start a new chat"><svg class="ic" viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4.5v4h4"/></svg></button>
+    <button class="icon" id="ai-close" type="button" title="Close (Esc)" aria-label="Close"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  </header>
+  <div class="ai-scroll" id="ai-scroll"><div class="ai-thread" id="chat"></div></div>
+  <div class="ai-bottom">
+    <div class="ai-quick" id="ai-quick"></div>
+    <form class="composer" id="ai-form">
+      <textarea id="ai-input" rows="1" placeholder="Ask about this question…" enterkeyhint="send"></textarea>
+      <div class="composer-row">
+        <span class="composer-model" id="ai-model"></span>
+        <button class="send" id="ai-send" type="submit" aria-label="Send" disabled><svg class="ic" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></svg></button>
+      </div>
+    </form>
   </div>
-  <div class="ai-quick" id="ai-quick"></div>
-  <div class="chat" id="chat"></div>
-  <form class="ai-form" id="ai-form">
-    <textarea id="ai-input" rows="2" placeholder="Ask about this question…"></textarea>
-    <button class="btn primary" type="submit">Send</button>
-  </form>
 </aside>
 <script src="app.js"></script>
 </body>

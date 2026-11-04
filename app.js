@@ -12,23 +12,21 @@ const MARKS = { correct: 3, wrongMCQ: -1, wrongTITA: 0 };
 const S = {
   data: null, byId: new Map(), chapterQs: new Map(),
   progress: load(STORE_KEY, { attempts: {}, bookmarks: {}, last: null }),
-  settings: load(SETTINGS_KEY, { apiKey: '', model: 'claude-opus-5-5' }),
-  filters: {},          // per chapter: { year, status, sub }
-  timer: null, chat: null,
+  settings: load(SETTINGS_KEY, { apiKey: '', model: 'claude-opus-5-5', panelW: 400, panelOpen: false }),
+  filters: {}, timer: null, chats: {}, q: null,
 };
 
 function load(k, d) { try { return Object.assign(d, JSON.parse(localStorage.getItem(k) || '{}')); } catch (e) { return d; } }
 function save() { localStorage.setItem(STORE_KEY, JSON.stringify(S.progress)); }
 function saveSettings() { localStorage.setItem(SETTINGS_KEY, JSON.stringify(S.settings)); }
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const fmtTime = s => { s = Math.round(s || 0); const m = Math.floor(s / 60); return `${m}:${String(s % 60).padStart(2, '0')}`; };
+const fmtTime = s => { s = Math.round(s || 0); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
 const $ = sel => document.querySelector(sel);
 const app = () => $('#app');
 
 /* ---------- data ---------- */
 async function init() {
-  const res = await fetch(DATA_URL);
-  S.data = await res.json();
+  S.data = await (await fetch(DATA_URL)).json();
   for (const q of S.data.questions) {
     S.byId.set(q.id, q);
     if (!S.chapterQs.has(q.ch)) S.chapterQs.set(q.ch, []);
@@ -37,12 +35,13 @@ async function init() {
   window.addEventListener('hashchange', route);
   document.addEventListener('keydown', onKey);
   document.addEventListener('visibilitychange', () => { if (document.hidden && S.timer && S.timer.running) pauseTimer(true); });
+  initPanel();
   route();
 }
 
-function chapter(id) { return S.data.chapters.find(c => c.id === id); }
-function attempt(qid) { return S.progress.attempts[qid]; }
-function negMark(q) { return q.type === 'MCQ'; }
+const chapter = id => S.data.chapters.find(c => c.id === id);
+const attempt = qid => S.progress.attempts[qid];
+const negMark = q => q.type === 'MCQ';
 
 function stats(qs) {
   const st = { total: qs.length, attempted: 0, correct: 0, wrong: 0, unmarked: 0, time: 0, score: 0 };
@@ -55,56 +54,55 @@ function stats(qs) {
   }
   return st;
 }
+const pct = (a, b) => b ? Math.round(100 * a / b) : 0;
+const accuracy = st => st.correct + st.wrong ? pct(st.correct, st.correct + st.wrong) + '%' : null;
 
 /* ---------- routing ---------- */
 function route() {
   stopTimer();
-  S.chat = null;
+  S.q = null;
   const h = location.hash || '#/';
   const m = h.match(/^#\/(ch|q)\/([^/?]+)/);
-  document.querySelectorAll('[data-nav]').forEach(a => a.classList.toggle('active',
-    (a.dataset.nav === 'home' && !h.startsWith('#/settings')) || (a.dataset.nav === 'settings' && h.startsWith('#/settings'))));
-  if (h.startsWith('#/settings')) return renderSettings();
-  if (m && m[1] === 'ch') return renderChapter(m[2]);
-  if (m && m[1] === 'q') return renderQuestion(m[2]);
-  renderDashboard();
+  document.body.classList.toggle('route-q', !!(m && m[1] === 'q'));
+  $('#ai-toggle').hidden = !(m && m[1] === 'q');
+  if (!(m && m[1] === 'q')) closePanel(true);
+  if (h.startsWith('#/settings')) renderSettings();
+  else if (m && m[1] === 'ch') renderChapter(m[2]);
+  else if (m && m[1] === 'q') renderQuestion(m[2]);
+  else renderDashboard();
   window.scrollTo(0, 0);
 }
 
 /* ---------- dashboard ---------- */
 function renderDashboard() {
   const all = stats(S.data.questions);
-  const acc = all.correct + all.wrong ? Math.round(100 * all.correct / (all.correct + all.wrong)) : null;
   const last = S.progress.last && S.byId.get(S.progress.last);
-  let html = `<h1>Dashboard</h1><p class="muted small">${esc(S.data.book)}</p>
-  <div class="cards">
-    <div class="card"><div class="k">Attempted</div><div class="v">${all.attempted}<span class="muted small"> / ${all.total}</span></div><div class="s">${Math.round(100 * all.attempted / all.total)}% of the book</div></div>
-    <div class="card"><div class="k">Accuracy</div><div class="v">${acc === null ? '–' : acc + '%'}</div><div class="s">${all.correct} right · ${all.wrong} wrong${all.unmarked ? ' · ' + all.unmarked + ' unmarked' : ''}</div></div>
-    <div class="card"><div class="k">Net score</div><div class="v">${all.score}</div><div class="s">+3 right, −1 wrong MCQ, 0 wrong TITA</div></div>
-    <div class="card"><div class="k">Time spent</div><div class="v">${fmtTime(all.time)}</div><div class="s">${all.attempted ? fmtTime(all.time / all.attempted) + ' avg per question' : 'no attempts yet'}</div></div>
+  let html = `<div class="hero">
+    <h1>CAT Prep</h1>
+    <p class="lead">Face 2 Face CAT · 1993–2019 · ${all.total.toLocaleString()} questions</p>
+    <div class="stats">
+      <div class="stat"><b>${all.attempted}</b><span>attempted</span></div>
+      <div class="stat"><b>${accuracy(all) || '–'}</b><span>accuracy</span></div>
+      <div class="stat"><b>${all.score > 0 ? '+' : ''}${all.score}</b><span>net score</span></div>
+      <div class="stat"><b>${fmtTime(all.time)}</b><span>time</span></div>
+    </div>
+    ${last ? `<a class="resume" href="#/q/${last.id}">Resume · ${esc(chapter(last.ch).title)} Q${last.n}</a>` : ''}
   </div>`;
-  if (last) html += `<p><a class="btn primary" href="#/q/${last.id}">Resume · ${esc(chapter(last.ch).title)} Q${last.n}</a></p>`;
-
   for (const [sec, name] of Object.entries(S.data.sections)) {
     const chs = S.data.chapters.filter(c => c.section === sec);
-    const secQs = chs.flatMap(c => S.chapterQs.get(c.id) || []);
-    const ss = stats(secQs);
-    const sacc = ss.correct + ss.wrong ? Math.round(100 * ss.correct / (ss.correct + ss.wrong)) + '% accuracy' : '';
-    html += `<div class="section-title"><h2>${esc(name)}</h2><span class="muted small">${ss.attempted}/${ss.total} attempted ${sacc ? '· ' + sacc : ''}</span></div><div class="chapters">`;
+    const ss = stats(chs.flatMap(c => S.chapterQs.get(c.id) || []));
+    html += `<div class="sec-head"><h2>${esc(name)}</h2><span>${ss.attempted} / ${ss.total}${accuracy(ss) ? ' · ' + accuracy(ss) : ''}</span></div><div class="rows">`;
     for (const c of chs) {
       const cs = stats(S.chapterQs.get(c.id) || []);
-      html += `<a class="chrow" href="#/ch/${c.id}">
-        <span class="n">${c.num}</span><span class="t">${esc(c.title)}</span>
-        ${bar(cs)}<span class="pct">${cs.attempted}/${cs.total}</span></a>`;
+      html += `<a class="row" href="#/ch/${c.id}"><span class="n">${c.num}</span><span class="t">${esc(c.title)}${bar(cs)}</span><span class="r">${cs.attempted} / ${cs.total}</span></a>`;
     }
     html += `</div>`;
   }
   app().innerHTML = html;
 }
-
 function bar(st) {
   const p = n => st.total ? (100 * n / st.total) + '%' : '0%';
-  return `<div class="bar"><i class="c" style="width:${p(st.correct)}"></i><i class="w" style="width:${p(st.wrong)}"></i><i class="u" style="width:${p(st.unmarked)}"></i></div>`;
+  return `<span class="bar"><i class="c" style="width:${p(st.correct)}"></i><i class="w" style="width:${p(st.wrong)}"></i><i class="u" style="width:${p(st.unmarked)}"></i></span>`;
 }
 
 /* ---------- chapter ---------- */
@@ -114,60 +112,51 @@ function renderChapter(chId) {
   const f = S.filters[chId] || (S.filters[chId] = { year: 'all', status: 'all', sub: 'all' });
   const years = [...new Set(qs.map(q => q.year).filter(Boolean))].sort((a, b) => b - a);
   const list = qs.filter(q => (f.year === 'all' || String(q.year) === f.year)
-    && (f.sub === 'all' || q.sub === f.sub)
-    && (f.status === 'all' || statusOf(q) === f.status));
+    && (f.sub === 'all' || q.sub === f.sub) && matchStatus(q, f.status));
   const cs = stats(qs);
-  const acc = cs.correct + cs.wrong ? Math.round(100 * cs.correct / (cs.correct + cs.wrong)) + '% accuracy' : '';
-  let html = `<div class="crumbs"><a href="#/">Dashboard</a> › ${esc(S.data.sections[c.section])}</div>
-  <h1>${c.num}. ${esc(c.title)}</h1>
-  <p class="muted small">${cs.total} questions · ${cs.attempted} attempted${acc ? ' · ' + acc : ''} · ${fmtTime(cs.time)} spent · book pages ${c.pages[0] - 89}–${c.pages[1] - 89}</p>
-  <div class="chips"><span class="chip ${f.year === 'all' ? 'on' : ''}" data-year="all">All years</span>${years.map(y => `<span class="chip ${f.year === String(y) ? 'on' : ''}" data-year="${y}">${y}</span>`).join('')}</div>
-  <div class="filters">
-    <select data-status><option value="all">All questions</option><option value="new">Not attempted</option><option value="correct">Correct</option><option value="wrong">Wrong</option><option value="unmarked">Unmarked</option><option value="bookmarked">Bookmarked</option></select>
-    ${c.subtopics.length ? `<select data-sub><option value="all">All topics</option>${c.subtopics.map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('')}</select>` : ''}
-    <span class="muted small">${list.length} shown</span>
-    ${list.length ? `<a class="btn primary small" href="#/q/${(list.find(q => !attempt(q.id)) || list[0]).id}">Start</a>` : ''}
-  </div>
-  <table class="list"><thead><tr><th></th><th>Q</th><th>Year</th><th>Type</th><th>Set</th><th class="right">Time</th><th class="right">Attempt</th></tr></thead><tbody>`;
+  const first = list.find(q => !attempt(q.id)) || list[0];
+  let html = `<a class="back" href="#/">Dashboard</a>
+  <h1>${esc(c.title)}</h1>
+  <p class="lead">${cs.total} questions · ${cs.attempted} attempted${accuracy(cs) ? ' · ' + accuracy(cs) : ''}${cs.time ? ' · ' + fmtTime(cs.time) : ''}</p>
+  <div class="years"><a class="${f.year === 'all' ? 'on' : ''}" data-year="all">All years</a>${years.map(y => `<a class="${f.year === String(y) ? 'on' : ''}" data-year="${y}">${y}</a>`).join('')}</div>
+  <div class="tools">
+    <span>
+      <select class="quiet" data-status><option value="all">All questions</option><option value="new">Not attempted</option><option value="correct">Correct</option><option value="wrong">Wrong</option><option value="unmarked">Unmarked</option><option value="bookmarked">Bookmarked</option></select>
+      ${c.subtopics.length ? ` <select class="quiet" data-sub><option value="all">All topics</option>${c.subtopics.map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('')}</select>` : ''}
+    </span>
+    ${first ? `<a class="btn primary" href="#/q/${first.id}">Start</a>` : ''}
+  </div><div class="rows">`;
   for (const q of list) {
-    const a = attempt(q.id); const st = statusOf(q);
-    const d = q.dir && S.data.directions[q.dir];
-    html += `<tr class="link" data-q="${q.id}">
-      <td><span class="dot ${st === 'correct' ? 'ok' : st === 'wrong' ? 'bad' : st === 'unmarked' ? 'unmarked' : ''}"></span></td>
-      <td class="num">${q.n}${S.progress.bookmarks[q.id] ? ' ★' : ''}</td>
-      <td>${q.year || '<span class="muted">–</span>'}</td>
-      <td><span class="badge">${q.type}</span></td>
-      <td class="small muted">${d && d.range ? 'Q' + d.range[0] + '–' + d.range[1] : ''}${q.sub ? ' ' + esc(q.sub) : ''}</td>
-      <td class="right num">${a ? fmtTime(a.time) : ''}</td>
-      <td class="right small muted">${a ? (a.ans ? a.ans.toUpperCase() : '') : ''}</td></tr>`;
+    const a = attempt(q.id);
+    html += `<a class="row qrow" href="#/q/${q.id}">
+      <span class="n">${q.n}</span>
+      <span class="t"><span class="dot ${a ? a.result : ''}"></span>${q.year ? 'CAT ' + q.year : '<span class="muted">year not stated</span>'}${q.sub ? ' · ' + esc(q.sub) : ''}${S.progress.bookmarks[q.id] ? ' ★' : ''}</span>
+      <span class="meta">${q.type}</span>
+      <span class="r">${a ? fmtTime(a.time) : ''}</span></a>`;
   }
-  html += `</tbody></table>`;
+  html += `</div>${list.length ? '' : '<p class="muted small">Nothing matches these filters.</p>'}`;
   app().innerHTML = html;
   $('[data-status]').value = f.status;
   if ($('[data-sub]')) $('[data-sub]').value = f.sub;
-  app().querySelectorAll('.chip').forEach(ch => ch.onclick = () => { f.year = ch.dataset.year; renderChapter(chId); });
+  app().querySelectorAll('[data-year]').forEach(el => el.onclick = () => { f.year = el.dataset.year; renderChapter(chId); });
   $('[data-status]').onchange = e => { f.status = e.target.value; renderChapter(chId); };
   if ($('[data-sub]')) $('[data-sub]').onchange = e => { f.sub = e.target.value; renderChapter(chId); };
-  app().querySelectorAll('tr[data-q]').forEach(tr => tr.onclick = () => { location.hash = '#/q/' + tr.dataset.q; });
 }
-
-function statusOf(q) {
-  if (S.filters.__bm) { /* unused */ }
+function matchStatus(q, st) {
+  if (st === 'all') return true;
+  if (st === 'bookmarked') return !!S.progress.bookmarks[q.id];
   const a = attempt(q.id);
-  const f = S.filters[q.ch];
-  if (f && f.status === 'bookmarked') return S.progress.bookmarks[q.id] ? 'bookmarked' : 'x';
-  return a ? a.result : 'new';
+  return st === 'new' ? !a : (a && a.result === st);
 }
 
 /* ---------- question ---------- */
 function cropSVG(r) {
   const [p, x0, y0, x1, y1] = r; const w = x1 - x0, h = y1 - y0;
   const [PW, PH] = S.data.pageSize;
-  const width = `clamp(${Math.round(w * 1.25)}px, 100%, ${Math.round(w * 2.1)}px)`;
+  const width = `clamp(${Math.round(w)}px, 100%, ${Math.round(w * 2.1)}px)`;
   return `<svg class="crop" viewBox="${x0} ${y0} ${w} ${h}" style="aspect-ratio:${w}/${h};width:${width}" preserveAspectRatio="xMinYMin meet"><image href="${PAGE_IMG(p)}" x="0" y="0" width="${PW}" height="${PH}"/></svg>`;
 }
 const crops = rects => `<div class="crops">${rects.map(cropSVG).join('')}</div>`;
-
 function siblings(q) {
   const qs = S.chapterQs.get(q.ch); const i = qs.indexOf(q);
   return { prev: qs[i - 1], next: qs[i + 1], i, n: qs.length };
@@ -175,61 +164,51 @@ function siblings(q) {
 
 function renderQuestion(qid) {
   const q = S.byId.get(qid); if (!q) return renderDashboard();
-  const c = chapter(q.ch);
-  const a = attempt(qid);
+  S.q = q;
+  const c = chapter(q.ch), a = attempt(qid);
   const d = q.dir && S.data.directions[q.dir];
-  const g = q.solgrp && S.data.solgroups[q.solgrp];
-  const { prev, next, i, n } = siblings(q);
+  const { prev, next } = siblings(q);
   S.progress.last = qid; save();
-
-  const html = `<div class="crumbs"><a href="#/">Dashboard</a> › <a href="#/ch/${c.id}">${esc(c.title)}</a> › ${i + 1} of ${n}</div>
-  <div class="qhead">
+  app().innerHTML = `<a class="back" href="#/ch/${c.id}">${esc(c.title)}</a>
+  <div class="qtop">
     <div>
-      <h1>Question ${q.n}${q.sub ? ` <span class="muted" style="font-weight:400">· ${esc(q.sub)}</span>` : ''}</h1>
-      <div class="row">
-        <span class="badge">${q.year ? 'CAT ' + q.year : 'year not stated'}</span>
-        <span class="badge">${q.type === 'MCQ' ? 'MCQ' : 'TITA · type the answer'}</span>
-        <span class="badge ${negMark(q) ? 'bad' : 'ok'}">${negMark(q) ? '+3 / −1 negative marking' : '+3 / no negative marking'}</span>
-        <button class="btn small" data-bm>${S.progress.bookmarks[qid] ? '★ Bookmarked' : '☆ Bookmark'}</button>
-      </div>
+      <h1>Q${q.n}</h1>
+      <div class="qmeta"><b>${q.year ? 'CAT ' + q.year : 'Year not stated'}</b> · ${q.type === 'MCQ' ? 'MCQ' : 'TITA, type the answer'} · <span class="${negMark(q) ? 'neg' : 'noneg'}">${negMark(q) ? '+3 / −1' : '+3 / no negative'}</span>${q.sub ? ' · ' + esc(q.sub) : ''} · <a data-bm>${S.progress.bookmarks[qid] ? '★ bookmarked' : '☆ bookmark'}</a></div>
     </div>
-    <div class="timer" id="timer"><span id="clock">0:00</span><button class="btn small" data-pause>Pause</button></div>
+    <div class="timer" id="timer"><span id="clock">0:00</span><button class="btn quiet" data-pause>Pause</button></div>
   </div>
-  ${d ? `<details class="panel" open><summary>${d.range ? `Directions for Q ${d.range[0]}–${d.range[1]}` : 'Directions'}</summary>${crops(d.rects)}</details>` : ''}
-  <div class="panel qimg">${crops(q.rects)}</div>
-  <div id="answer">${answerHTML(q, a)}</div>
-  <div id="after">${a ? afterHTML(q, a, g) : ''}</div>
-  <div class="navbar">
-    <span>${prev ? `<a class="btn" href="#/q/${prev.id}">← Q${prev.n}</a>` : ''}</span>
-    <span class="hint"><kbd>A</kbd>–<kbd>D</kbd> pick · <kbd>Enter</kbd> submit · <kbd>N</kbd> next · <kbd>P</kbd> previous</span>
-    <span>${next ? `<a class="btn" href="#/q/${next.id}">Q${next.n} →</a>` : `<a class="btn" href="#/ch/${c.id}">Done with chapter</a>`}</span>
+  ${d ? `<div class="card" id="dir"><div class="label"><span>${d.range ? `Directions · Q${d.range[0]}–${d.range[1]}` : 'Directions'}</span><button class="icon small" data-toggle="dir">Hide</button></div>${crops(d.rects)}</div>` : ''}
+  <div class="card">${crops(q.rects)}</div>
+  <div class="answer" id="answer">${answerHTML(q, a)}</div>
+  <div id="after">${a ? afterHTML(q, a) : ''}</div>
+  <div class="pager">
+    <span>${prev ? `<a href="#/q/${prev.id}">← Q${prev.n}</a>` : ''}</span>
+    <span>${next ? `<a href="#/q/${next.id}">Q${next.n} →</a>` : `<a href="#/ch/${c.id}">Back to chapter</a>`}</span>
   </div>`;
-  app().innerHTML = html;
-  window.scrollTo(0, 0);
-  $('[data-bm]').onclick = () => { S.progress.bookmarks[qid] = !S.progress.bookmarks[qid]; save(); $('[data-bm]').textContent = S.progress.bookmarks[qid] ? '★ Bookmarked' : '☆ Bookmark'; };
+  $('[data-bm]').onclick = () => { S.progress.bookmarks[qid] = !S.progress.bookmarks[qid]; save(); $('[data-bm]').textContent = S.progress.bookmarks[qid] ? '★ bookmarked' : '☆ bookmark'; };
   $('[data-pause]').onclick = () => S.timer.running ? pauseTimer() : resumeTimer();
+  const tg = $('[data-toggle="dir"]');
+  if (tg) tg.onclick = () => { const el = $('#dir'); el.classList.toggle('collapsed'); tg.textContent = el.classList.contains('collapsed') ? 'Show' : 'Hide'; };
   bindAnswer(q);
-  if (a) { bindAfter(q, a, g); $('#timer').classList.add('paused'); $('#clock').textContent = fmtTime(a.time); $('[data-pause]').style.display = 'none'; }
-  else startTimer();
+  if (a) finishTimerDisplay(a); else startTimer();
+  panelForQuestion(q);
+  if (S.settings.panelOpen && window.innerWidth > 760) openPanel();
 }
 
 function answerHTML(q, a) {
+  const letters = ['a', 'b', 'c', 'd'];
   if (a) {
-    if (q.type === 'MCQ' && q.opts) {
-      return `<div class="options">${['a', 'b', 'c', 'd'].map(o => `<button class="opt ${o === q.ans ? 'ok' : o === a.ans ? (a.result === 'wrong' ? 'bad' : 'sel') : ''}" disabled>${o}</button>`).join('')}</div>`;
-    }
-    return `<p>Your answer: <b>${esc(a.ans) || '—'}</b>${q.ans ? ` · Key: <b>${esc(q.ans)}</b>` : ''}</p>`;
+    if (q.type === 'MCQ' && q.opts) return `<div class="opts">${letters.map(o => `<button class="opt ${o === q.ans ? 'ok' : o === a.ans ? (a.result === 'wrong' ? 'bad' : 'sel') : ''}" disabled>${o}</button>`).join('')}</div>`;
+    return `<p class="small muted">Your answer: <b>${esc(a.ans) || '—'}</b>${q.ans ? ` · key: <b>${esc(q.ans)}</b>` : ''}</p>`;
   }
-  if (q.type === 'MCQ' && q.opts) {
-    return `<div class="options">${['a', 'b', 'c', 'd'].map(o => `<button class="opt" data-opt="${o}">${o}</button>`).join('')}</div>
-      <div class="row"><button class="btn primary" data-submit disabled>Submit</button><button class="btn" data-skip>Skip · show solution</button></div>`;
-  }
-  return `<div class="tita"><input type="text" data-tita placeholder="${q.type === 'MCQ' ? 'Option letter (a–d) – options are in the directions' : 'Type your answer'}" autocomplete="off"></div>
-    <div class="row"><button class="btn primary" data-submit disabled>Submit</button><button class="btn" data-skip>Skip · show solution</button></div>`;
+  const actions = `<div class="actions"><button class="btn primary" data-submit disabled>Submit</button><button class="btn quiet" data-skip>Skip, show solution</button></div>`;
+  if (q.type === 'MCQ' && q.opts) return `<div class="opts">${letters.map(o => `<button class="opt" data-opt="${o}">${o}</button>`).join('')}</div>${actions}`;
+  return `<div class="tita"><input type="text" data-tita placeholder="${q.type === 'MCQ' ? 'Option letter a–d (options are in the directions)' : 'Your answer'}" autocomplete="off"></div>${actions}`;
 }
 
 function bindAnswer(q) {
-  const sub = $('[data-submit]'); if (!sub) return;
+  const sub = $('[data-submit]'); S._pick = S._submit = null;
+  if (!sub) return;
   let picked = null;
   app().querySelectorAll('[data-opt]').forEach(b => b.onclick = () => {
     picked = b.dataset.opt;
@@ -254,56 +233,45 @@ function grade(q, ans) {
 function submit(q, ans) {
   const t = stopTimer();
   const prevA = attempt(q.id);
-  const skipped = ans === null;
-  const a = { ans: ans || '', result: skipped ? 'wrong' : grade(q, ans), time: t, at: Date.now(), n: (prevA ? prevA.n : 0) + 1, skipped };
+  const a = { ans: ans || '', result: ans === null ? 'wrong' : grade(q, ans), time: t, at: Date.now(), n: (prevA ? prevA.n : 0) + 1, skipped: ans === null };
   S.progress.attempts[q.id] = a; save();
   $('#answer').innerHTML = answerHTML(q, a);
+  $('#after').innerHTML = afterHTML(q, a);
+  bindAfter(q, a);
+  finishTimerDisplay(a);
+  S._pick = S._submit = null;
+  panelForQuestion(q);
+}
+
+function finishTimerDisplay(a) {
+  $('#timer').classList.add('paused'); $('#clock').textContent = fmtTime(a.time); $('[data-pause]').style.display = 'none';
+}
+
+function afterHTML(q, a) {
   const g = q.solgrp && S.data.solgroups[q.solgrp];
-  $('#after').innerHTML = afterHTML(q, a, g);
-  bindAfter(q, a, g);
-  $('#timer').classList.add('paused'); $('[data-pause]').style.display = 'none';
-  S._pick = null; S._submit = null;
-}
-
-function afterHTML(q, a, g) {
   const r = a.result;
-  const label = a.skipped ? 'Skipped · counted as wrong' : r === 'correct' ? 'Correct' : r === 'wrong' ? 'Wrong' : 'Check against the solution';
-  const sub = r === 'unmarked'
-    ? `<div class="small">No answer key could be read for this question. Mark it yourself: <button class="btn small" data-mark="correct">I was right</button> <button class="btn small" data-mark="wrong">I was wrong</button></div>`
-    : `<span class="small">${fmtTime(a.time)} · ${r === 'correct' ? '+3' : negMark(q) && !a.skipped ? '−1' : '0'} marks${q.ans ? ' · key: ' + esc(q.ans).toUpperCase() : ''} · <button class="btn small" data-retry>Retry</button></span>`;
-  return `<div class="result ${r}">${label} ${sub}</div>
-  <details class="panel" open><summary>Solution</summary>${g ? crops(g.rects) : ''}${q.sol ? crops(q.sol.rects) : '<p class="muted">No solution was found for this question in the book.</p>'}</details>
-  <details class="panel" id="ai" open><summary>AI tutor</summary>
-    <div class="chat" id="chat"></div>
-    <div class="row" style="margin-top:10px">
-      <button class="btn small" data-ai="hint">Give me a hint</button>
-      <button class="btn small" data-ai="explain">Explain the solution</button>
-      <button class="btn small" data-ai="why">Why is my answer wrong?</button>
-    </div>
-    <div class="chat-input"><textarea data-ai-input placeholder="Ask anything about this question…"></textarea><button class="btn primary" data-ai="ask">Send</button></div>
-    <p class="hint">${S.settings.apiKey ? `Uses ${esc(S.settings.model)} with your API key.` : 'Add your Anthropic API key in <a href="#/settings">Settings</a> to use the tutor.'}</p>
-  </details>`;
+  const label = a.skipped ? 'Skipped' : r === 'correct' ? 'Correct' : r === 'wrong' ? 'Wrong' : 'Check the solution';
+  const marks = r === 'correct' ? '+3' : negMark(q) && !a.skipped ? '−1' : '0';
+  const right = r === 'unmarked'
+    ? `<span><button class="btn" data-mark="correct">I was right</button> <button class="btn" data-mark="wrong">I was wrong</button></span>`
+    : `<span class="m">${fmtTime(a.time)} · ${marks}${q.ans ? ' · key ' + esc(q.ans).toUpperCase() : ''} · <a data-retry>retry</a></span>`;
+  return `<div class="verdict ${r}"><b>${label}</b>${right}</div>
+  ${r === 'unmarked' ? '<p class="small muted">No answer key could be read for this question, so mark it yourself.</p>' : ''}
+  <div class="card"><div class="label"><span>Solution</span></div>${g ? crops(g.rects) : ''}${q.sol ? crops(q.sol.rects) : '<p class="muted small">The book has no solution for this question.</p>'}</div>`;
 }
-
-function bindAfter(q, a, g) {
+function bindAfter(q, a) {
   app().querySelectorAll('[data-mark]').forEach(b => b.onclick = () => {
     a.result = b.dataset.mark; save();
-    $('#after').innerHTML = afterHTML(q, a, g); bindAfter(q, a, g);
+    $('#after').innerHTML = afterHTML(q, a); bindAfter(q, a);
     $('#answer').innerHTML = answerHTML(q, a);
   });
   const retry = $('[data-retry]');
   if (retry) retry.onclick = () => { delete S.progress.attempts[q.id]; save(); renderQuestion(q.id); };
-  app().querySelectorAll('[data-ai]').forEach(b => b.onclick = () => askAI(q, a, b.dataset.ai));
-  const ta = $('[data-ai-input]');
-  if (ta) ta.onkeydown = e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); askAI(q, a, 'ask'); } };
 }
 
 /* ---------- timer ---------- */
-function startTimer() {
-  S.timer = { acc: 0, start: Date.now(), running: true, iv: setInterval(tick, 500) };
-  tick();
-}
-function elapsed() { if (!S.timer) return 0; return S.timer.acc + (S.timer.running ? (Date.now() - S.timer.start) / 1000 : 0); }
+function startTimer() { S.timer = { acc: 0, start: Date.now(), running: true, iv: setInterval(tick, 500) }; tick(); }
+function elapsed() { return S.timer ? S.timer.acc + (S.timer.running ? (Date.now() - S.timer.start) / 1000 : 0) : 0; }
 function tick() { const c = $('#clock'); if (c) c.textContent = fmtTime(elapsed()); }
 function pauseTimer(auto) {
   if (!S.timer || !S.timer.running) return;
@@ -315,31 +283,57 @@ function resumeTimer() {
   S.timer.start = Date.now(); S.timer.running = true;
   $('#timer').classList.remove('paused'); $('[data-pause]').textContent = 'Pause';
 }
-function stopTimer() {
-  if (!S.timer) return 0;
-  const t = elapsed(); clearInterval(S.timer.iv); S.timer = null; return t;
-}
+function stopTimer() { if (!S.timer) return 0; const t = elapsed(); clearInterval(S.timer.iv); S.timer = null; return t; }
 
 /* ---------- keyboard ---------- */
 function onKey(e) {
   if (e.target.matches('input, textarea, select')) return;
+  if (!S.q) return;
   const k = e.key.toLowerCase();
-  if (!location.hash.startsWith('#/q/')) return;
   if (/^[a-d]$/.test(k) && S._pick) return S._pick(k);
   if (/^[1-4]$/.test(k) && S._pick) return S._pick('abcd'[+k - 1]);
   if (k === 'enter' && S._submit) return S._submit();
-  const q = S.byId.get(location.hash.slice(4)); if (!q) return;
-  const { prev, next } = siblings(q);
+  const { prev, next } = siblings(S.q);
   if (k === 'n' && next) location.hash = '#/q/' + next.id;
   if (k === 'p' && prev) location.hash = '#/q/' + prev.id;
+  if (k === 't') togglePanel();
 }
 
-/* ---------- AI tutor (Anthropic Messages API, called directly from the browser) ---------- */
+/* ---------- AI tutor panel ---------- */
 const TUTOR_SYSTEM = `You are a tutor for the CAT (Common Admission Test, India). The student is practising a past-paper question from a solved-papers book. You get the question as an image cropped from the book (plus the directions/data set when there is one), a rough text extraction that may garble maths, and, when known, the answer key.
-Rules: use plain text with simple inline maths (no LaTeX). Be concise and concrete. For a "hint" give one nudge that unlocks the next step and never state the final answer. For "explain" give a clean step-by-step solution and end with the final answer. For "why wrong" first find the student's likely error, then correct it. If the extraction and the image disagree, trust the image. Mention exam strategy (time, elimination, when to skip) only when it is genuinely useful.`;
+Rules: use plain text with simple inline maths (no LaTeX, no markdown headings). Be concise and concrete. For a "hint" give one nudge that unlocks the next step and never state the final answer. For "explain" give a clean step-by-step solution and end with the final answer. For "why wrong" first find the student's likely error, then correct it. If the extraction and the image disagree, trust the image. Mention exam strategy (time, elimination, when to skip) only when it is genuinely useful.`;
+
+function initPanel() {
+  document.documentElement.style.setProperty('--panel-w', (S.settings.panelW || 400) + 'px');
+  $('#ai-toggle').onclick = openPanel;
+  $('#ai-close').onclick = () => closePanel();
+  $('#ai-form').onsubmit = e => { e.preventDefault(); if (S.q) askAI(S.q, 'ask'); };
+  $('#ai-input').onkeydown = e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (S.q) askAI(S.q, 'ask'); } };
+  const handle = $('.ai-resize');
+  handle.onpointerdown = e => {
+    e.preventDefault(); handle.setPointerCapture(e.pointerId);
+    const move = ev => { const w = Math.min(680, Math.max(300, window.innerWidth - ev.clientX)); document.documentElement.style.setProperty('--panel-w', w + 'px'); S.settings.panelW = w; };
+    const up = () => { handle.removeEventListener('pointermove', move); handle.removeEventListener('pointerup', up); saveSettings(); };
+    handle.addEventListener('pointermove', move); handle.addEventListener('pointerup', up);
+  };
+}
+function openPanel() { $('#ai-panel').hidden = false; document.body.classList.add('ai-open'); S.settings.panelOpen = true; saveSettings(); setTimeout(() => $('#ai-input').focus(), 250); }
+function closePanel(silent) { document.body.classList.remove('ai-open'); if (!silent) { S.settings.panelOpen = false; saveSettings(); } }
+function togglePanel() { document.body.classList.contains('ai-open') ? closePanel() : openPanel(); }
+
+function panelForQuestion(q) {
+  const a = attempt(q.id);
+  $('#ai-sub').textContent = `${chapter(q.ch).title} · Q${q.n}` + (S.settings.apiKey ? ` · ${S.settings.model}` : '');
+  $('#ai-quick').innerHTML = `<button class="btn" data-ai="hint">Hint</button><button class="btn" data-ai="explain">Explain</button>${a && a.result !== 'correct' ? '<button class="btn" data-ai="why">Why was I wrong?</button>' : ''}`;
+  $('#ai-quick').querySelectorAll('[data-ai]').forEach(b => b.onclick = () => askAI(q, b.dataset.ai));
+  const chat = $('#chat');
+  chat.innerHTML = '';
+  if (!S.settings.apiKey) chat.innerHTML = `<div class="msg hint">Add your Anthropic API key in <a href="#/settings"><u>Settings</u></a> to use the tutor.</div>`;
+  const c = S.chats[q.id];
+  if (c) for (const m of c.shown) chat.insertAdjacentHTML('beforeend', `<div class="msg ${m.role}">${esc(m.text)}</div>`);
+}
 
 async function questionImage(q) {
-  // Compose the crops onto a canvas and return base64 JPEG.
   const rects = [];
   const d = q.dir && S.data.directions[q.dir];
   if (d) rects.push(...d.rects);
@@ -360,38 +354,41 @@ async function questionImage(q) {
   }
   return cv.toDataURL('image/jpeg', 0.85).split(',')[1];
 }
-function loadImg(src) { return new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = src; }); }
+const loadImg = src => new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = src; });
 
-async function askAI(q, a, mode) {
-  const chat = $('#chat'); if (!chat) return;
-  if (!S.settings.apiKey) { chat.insertAdjacentHTML('beforeend', `<div class="msg err">Add your Anthropic API key in Settings first.</div>`); return; }
-  const ta = $('[data-ai-input]');
+async function askAI(q, mode) {
+  const chat = $('#chat'), ta = $('#ai-input');
+  if (!S.settings.apiKey) { openPanel(); return; }
+  const a = attempt(q.id);
   let userText;
   if (mode === 'hint') userText = 'Give me a hint for this question. Do not reveal the answer.';
   else if (mode === 'explain') userText = 'Explain how to solve this question step by step, then give the final answer.';
-  else if (mode === 'why') userText = `I answered "${a.ans || '(skipped)'}"${q.ans ? ` and the key says "${q.ans}"` : ''}. Why is my answer wrong, and what is the right approach?`;
+  else if (mode === 'why') userText = `I answered "${(a && a.ans) || '(skipped)'}"${q.ans ? ` and the key says "${q.ans}"` : ''}. Why is my answer wrong, and what is the right approach?`;
   else { userText = (ta.value || '').trim(); if (!userText) return; ta.value = ''; }
 
-  if (!S.chat) {
+  let c = S.chats[q.id];
+  if (!c) {
     const img = await questionImage(q).catch(() => null);
     const ctxText = `Chapter: ${chapter(q.ch).title}. ${q.year ? 'CAT ' + q.year + '. ' : ''}Type: ${q.type}. ${q.ans ? 'Answer key: ' + q.ans + '.' : 'Answer key not available.'}\nDirections (text extraction): ${q.dir ? S.data.directions[q.dir].text : '(none)'}\nQuestion (text extraction): ${q.text}`;
     const content = [];
     if (img) content.push({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: img } });
     content.push({ type: 'text', text: ctxText });
-    S.chat = { messages: [{ role: 'user', content }, { role: 'assistant', content: 'Understood. I have the question. What do you need?' }] };
+    c = S.chats[q.id] = { messages: [{ role: 'user', content }, { role: 'assistant', content: 'Understood. I have the question. What do you need?' }], shown: [] };
   }
-  S.chat.messages.push({ role: 'user', content: userText });
+  c.messages.push({ role: 'user', content: userText });
+  c.shown.push({ role: 'user', text: userText });
   chat.insertAdjacentHTML('beforeend', `<div class="msg user">${esc(userText)}</div><div class="msg ai">…</div>`);
-  const out = chat.lastElementChild;
-  app().querySelectorAll('[data-ai]').forEach(b => b.disabled = true);
+  const out = chat.lastElementChild; chat.scrollTop = chat.scrollHeight;
+  $('#ai-quick').querySelectorAll('button').forEach(b => b.disabled = true);
   try {
-    const text = await streamClaude(S.chat.messages, t => { out.textContent = t; });
-    S.chat.messages.push({ role: 'assistant', content: text });
+    const text = await streamClaude(c.messages, t => { out.textContent = t; chat.scrollTop = chat.scrollHeight; });
+    c.messages.push({ role: 'assistant', content: text });
+    c.shown.push({ role: 'ai', text });
   } catch (err) {
-    S.chat.messages.pop();
+    c.messages.pop(); c.shown.pop();
     out.className = 'msg err'; out.textContent = 'Request failed: ' + err.message;
   } finally {
-    app().querySelectorAll('[data-ai]').forEach(b => b.disabled = false);
+    $('#ai-quick').querySelectorAll('button').forEach(b => b.disabled = false);
   }
 }
 
@@ -437,25 +434,27 @@ async function streamClaude(messages, onText) {
 /* ---------- settings ---------- */
 function renderSettings() {
   const st = stats(S.data.questions);
-  app().innerHTML = `<h1>Settings</h1>
+  app().innerHTML = `<a class="back" href="#/">Dashboard</a><h1>Settings</h1>
   <div class="form">
-    <h2>AI tutor</h2>
     <label>Anthropic API key</label><input type="password" data-key value="${esc(S.settings.apiKey)}" placeholder="sk-ant-…">
-    <p class="notice">Stored only in this browser (localStorage) and sent straight to api.anthropic.com from your browser. Create one at console.anthropic.com.</p>
-    <label>Model</label>
+    <p class="note">Kept only in this browser and sent straight to api.anthropic.com. Create one at console.anthropic.com.</p>
+    <label>Tutor model</label>
     <select data-model>
-      <option value="claude-opus-5-5">Claude Opus 5.5 (recommended)</option>
-      <option value="claude-sonnet-5-5">Claude Sonnet 5.5 (cheaper)</option>
-      <option value="claude-haiku-5-5">Claude Haiku 5.5 (cheapest)</option>
+      <option value="claude-opus-5-5">Claude Opus 5.5</option>
+      <option value="claude-sonnet-5-5">Claude Sonnet 5.5</option>
+      <option value="claude-haiku-5-5">Claude Haiku 5.5</option>
     </select>
-    <p><button class="btn primary" data-save>Save</button> <span class="muted small" id="saved"></span></p>
-
-    <h2>Progress</h2>
-    <p class="muted small">${st.attempted} attempts, ${Object.keys(S.progress.bookmarks).filter(k => S.progress.bookmarks[k]).length} bookmarks, ${fmtTime(st.time)} recorded. Progress is kept in this browser only; export it to move between devices.</p>
-    <p class="row"><button class="btn" data-export>Export JSON</button><button class="btn" data-import>Import JSON</button><input type="file" accept="application/json" data-file hidden><button class="btn danger" data-reset>Reset all progress</button></p>
-
-    <h2>Appearance</h2>
+    <p style="margin-top:14px"><button class="btn primary" data-save>Save</button> <span class="muted small" id="saved"></span></p>
+    <hr>
+    <label>Progress</label>
+    <p class="note">${st.attempted} attempts, ${fmtTime(st.time)} recorded, ${Object.values(S.progress.bookmarks).filter(Boolean).length} bookmarks. Stored in this browser only.</p>
+    <p class="actions"><button class="btn" data-export>Export</button><button class="btn" data-import>Import</button><input type="file" accept="application/json" data-file hidden><button class="btn quiet" data-reset>Reset everything</button></p>
+    <hr>
+    <label>Theme</label>
     <select data-theme><option value="">System</option><option value="light">Light</option><option value="dark">Dark</option></select>
+    <hr>
+    <label>Keyboard</label>
+    <p class="keys"><kbd>A</kbd>–<kbd>D</kbd> pick an option · <kbd>Enter</kbd> submit · <kbd>N</kbd> next · <kbd>P</kbd> previous · <kbd>T</kbd> tutor</p>
   </div>`;
   $('[data-model]').value = S.settings.model;
   $('[data-theme]').value = document.documentElement.dataset.theme || '';
@@ -478,5 +477,5 @@ function renderSettings() {
 /* ---------- boot ---------- */
 (function () {
   const t = localStorage.getItem('catprep.theme'); if (t) document.documentElement.dataset.theme = t;
-  init().catch(err => { app().innerHTML = `<p class="muted">Could not load data: ${esc(err.message)}</p>`; });
+  init().catch(err => { app().innerHTML = `<p class="muted center">Could not load data: ${esc(err.message)}</p>`; });
 })();

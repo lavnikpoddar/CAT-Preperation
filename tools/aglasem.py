@@ -120,7 +120,7 @@ def drawn_content(words_by_page, rects, min_px=60):
             wx0, wy0, wx1, wy1 = (max(0, int((w[0] - x0 - 1.5) * s)), max(0, int((w[1] - y0 - 2) * s)),
                                   int((w[2] - x0 + 1.5) * s), int((w[3] - y0 + 2) * s))
             sub[wy0:wy1, wx0:wx1] = False
-        if int(sub.sum()) > min_px:
+        if int(sub.sum()) > min_px and int(sub.any(axis=0).sum()) > 10:   # bullets are a few pixels wide
             return True
     return False
 
@@ -316,7 +316,7 @@ def looks_tabular(words_by_page, rects):
     for r in rects:
         for ln in lines_of(TX.words_in(words_by_page[r[0]], r)):
             toks = [w[4] for w in ln["words"]]
-            if len(toks) >= 4 and sum(1 for t in toks if re.fullmatch(r"[\d.,%-]+", t)) >= 3:
+            if len(toks) >= 4 and sum(1 for t in toks if re.fullmatch(r"[\d.,%-]*\d[\d.,%-]*", t)) >= 3:
                 rows += 1
     return rows >= 3
 

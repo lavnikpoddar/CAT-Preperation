@@ -136,12 +136,12 @@ function renderDashboard() {
   let html = `<div class="hero">
     <h1>${days > 1 ? days + ' days to CAT' : days === 1 ? 'CAT is tomorrow' : days === 0 ? 'CAT is today' : 'CAT was ' + (-days) + ' days ago'}</h1>
     <p class="lead">${when}</p>
-    ${last ? `<a class="resume t-${chapter(last.ch).section}" href="#/q/${last.id}"><span class="play">${icon('play')}</span><span class="rt"><small>Resume</small>${esc(chapter(last.ch).title)} · Q${last.n}</span></a>` : ''}
+    ${last ? `<a class="resume" href="#/q/${last.id}"><span class="play">${icon('play')}</span><span class="rt"><small>Resume</small>${esc(chapter(last.ch).title)} · Q${last.n}</span></a>` : ''}
   </div>`;
   for (const [sec, name] of Object.entries(S.data.sections)) {
     const chs = S.data.chapters.filter(c => c.section === sec);
     const st = stats(chs.flatMap(c => S.chapterQs.get(c.id) || []));
-    html += `<a class="secbox t-${sec}" href="#/sec/${sec}" title="Open ${esc(name)}">
+    html += `<a class="secbox" href="#/sec/${sec}" title="Open ${esc(name)}">
       <div class="secbox-head"><span class="sh"><span class="badge-ic">${icon(sec)}</span><span class="full">${esc(name)}</span><span class="short">${{ QA: 'Quant', DILR: 'DILR', VARC: 'VARC' }[sec]}</span></span><span class="go">${icon('arrow')}</span></div>
       ${metricsHTML(st, TARGETS[sec])}
     </a>`;
@@ -173,7 +173,7 @@ function renderSection(sec) {
   const name = S.data.sections[sec]; if (!name) return renderDashboard();
   const chs = S.data.chapters.filter(c => c.section === sec);
   const ss = stats(chs.flatMap(c => S.chapterQs.get(c.id) || []));
-  let html = `<div class="t-${sec}"><h1 class="with-ic"><span class="badge-ic lg">${icon(sec)}</span>${esc(name)}</h1><p class="lead">${ss.total} questions · ${ss.attempted} attempted${accuracy(ss) ? ' · ' + accuracy(ss) : ''}${ss.time ? ' · ' + fmtTime(ss.time) : ''}</p><div class="rows" style="margin-top:18px">`;
+  let html = `<div><h1 class="with-ic"><span class="badge-ic lg">${icon(sec)}</span>${esc(name)}</h1><p class="lead">${ss.total} questions · ${ss.attempted} attempted${accuracy(ss) ? ' · ' + accuracy(ss) : ''}${ss.time ? ' · ' + fmtTime(ss.time) : ''}</p><div class="rows" style="margin-top:18px">`;
   for (const c of chs) {
     const cs = stats(S.chapterQs.get(c.id) || []);
     html += `<a class="row crow" href="#/ch/${c.id}"><span class="n">${c.num}</span><span class="t">${esc(c.title)}</span><span class="prog">${ring(cs)}<span>${cs.attempted}<i> / ${cs.total}</i></span></span></a>`;
@@ -207,7 +207,7 @@ function renderChapter(chId) {
   const yearOpts = `<option value="all">All years</option>
     <optgroup label="Periods">${ERAS.map(([v, l]) => eraCount(v) ? `<option value="${v}">${l} · ${eraCount(v)}</option>` : '').join('')}</optgroup>
     <optgroup label="Year">${years.map(y => `<option value="${y}">${y} · ${count[y]}</option>`).join('')}</optgroup>`;
-  let html = `<div class="t-${c.section}"><a class="back" href="#/sec/${c.section}">${esc(S.data.sections[c.section])}</a>
+  let html = `<div><a class="back" href="#/sec/${c.section}">${esc(S.data.sections[c.section])}</a>
   <h1 class="with-ic"><span class="badge-ic lg">${icon(c.section)}</span>${esc(c.title)}</h1>
   <p class="lead">${cs.total} questions · ${cs.attempted} attempted${accuracy(cs) ? ' · ' + accuracy(cs) : ''}${cs.time ? ' · ' + fmtTime(cs.time) : ''}</p>
   <div class="filterbar">

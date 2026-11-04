@@ -142,7 +142,7 @@ function renderDashboard() {
     const chs = S.data.chapters.filter(c => c.section === sec);
     const st = stats(chs.flatMap(c => S.chapterQs.get(c.id) || []));
     html += `<a class="secbox t-${sec}" href="#/sec/${sec}" title="Open ${esc(name)}">
-      <div class="secbox-head"><span class="sh"><span class="badge-ic">${icon(sec)}</span>${esc(name)}</span><span class="go">${icon('arrow')}</span></div>
+      <div class="secbox-head"><span class="sh"><span class="badge-ic">${icon(sec)}</span><span class="full">${esc(name)}</span><span class="short">${{ QA: 'Quant', DILR: 'DILR', VARC: 'VARC' }[sec]}</span></span><span class="go">${icon('arrow')}</span></div>
       ${metricsHTML(st, TARGETS[sec])}
     </a>`;
   }
@@ -155,19 +155,18 @@ function metricsHTML(st, t) {
   const avg = st.attempted ? st.time / st.attempted : null;
   const grade = (v, ok) => v === null ? '' : ok ? 'good' : 'low';
   const cell = (ic, label, val, cls = '') => `<div class="m ${cls}"><span class="ml">${icon(ic)}${label}</span><b>${val}</b></div>`;
-  const tcell = (val, sub) => `<div class="m"><b>${val}</b><span>${sub}</span></div>`;
+  const tcell = val => `<div class="m"><b>${val}</b></div>`;
   return `<div class="mgrid">
     ${cell('attempted', 'Attempted', st.attempted)}
     ${cell('accuracy', 'Accuracy', acc === null ? '–' : acc + '%', grade(acc, acc >= t.accuracy))}
     ${cell('score', 'Net score', (st.score > 0 ? '+' : '') + st.score + (per === null ? '' : `<small> ${per.toFixed(1)}/q</small>`), grade(per, per >= t.perAttempt))}
     ${cell('time', 'Avg time', avg === null ? '–' : fmtTime(avg), grade(avg, avg <= t.time))}
   </div>
-  <div class="mgrid targets" title="Approximate 99th-percentile benchmarks for a 40-minute section, from coaching-institute estimates for recent CAT papers (not official). Time includes set reading.">
-    <div class="tlabel">${icon('flag')}99th percentile</div>
-    ${tcell(t.attempts, 'attempts in the exam')}
-    ${tcell('≥ ' + t.accuracy + '%', 'accuracy')}
-    ${tcell('+' + t.perAttempt, 'per attempt')}
-    ${tcell('≤ ' + fmtTime(t.time), 'per question')}
+  <div class="mgrid targets" title="Rough 99th-percentile targets for a 40-minute section (coaching-institute estimates, not official)">
+    ${tcell(t.attempts.replace(' of ', ' / '))}
+    ${tcell('≥ ' + t.accuracy + '%')}
+    ${tcell('+' + t.perAttempt + '/q')}
+    ${tcell('≤ ' + fmtTime(t.time))}
   </div>`;
 }
 function renderSection(sec) {

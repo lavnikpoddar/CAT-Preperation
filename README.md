@@ -47,7 +47,15 @@ python3 tools/extract.py chapters.xml data/questions.json --pages pages --drawin
 
 Answer keys come from the "Hints & Solutions" entries that start with an option letter; TITA questions and a few MCQs whose solution does not start with the letter have no key, and the app asks you to mark those yourself against the solution.
 
-The three full solved papers at the front of the book (CAT 2017, 2018, 2019) are extracted by `tools/papers.py` into chapters `p2017`–`p2019` (section PAPERS); their questions carry an exam section (VARC / DILR / QA) and count towards those sections' figures. Not covered: the three practice sets at the back of the book, and papers after 2019, which are not in the book.
+CAT 2024 and 2025 (all three slots each) come from AglaSem's "Question Paper with Answer Key" PDFs (docs.aglasem.com), extracted by `tools/aglasem.py` into chapters `a2024s1` … `a2025s3`. They carry the official answer keys but no worked solutions; use the tutor for those. Maths is drawn as vector glyphs in those PDFs, so such questions keep their page image.
+
+```bash
+# put cat<year>s<slot>.pdf files in a folder, render them, then:
+pdftoppm -r 150 -gray -png cat2025s1.pdf pages/cat2025s1      # one per file
+python3 tools/aglasem.py data/questions.json --pdf-dir PDFS --pages pages --img-out img/pages
+```
+
+The three full solved papers at the front of the book (CAT 2017, 2018, 2019) are extracted by `tools/papers.py` into chapters `p2017`–`p2019` (section PAPERS); their questions carry an exam section (VARC / DILR / QA) and count towards those sections' figures. Not covered: the three practice sets at the back of the book, and CAT 2020–2023 (AglaSem only has candidate response sheets without keys for those years, and its 2021 files are missing).
 
 ```bash
 pdftotext -bbox-layout -f 16 -l 88 "Face to Face CAT Topicwise Solved Papers.pdf" papers.xml

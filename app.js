@@ -4,7 +4,8 @@
 'use strict';
 
 const DATA_URL = 'data/questions.json';
-const PAGE_IMG = p => `img/pages/p-${String(p).padStart(3, '0')}.webp`;
+const PAGE_IMG = p => typeof p === 'number' ? `img/pages/p-${String(p).padStart(3, '0')}.webp` : `img/pages/${p}.webp`;
+const pageSize = p => (typeof p !== 'number' && S.data.pageSizes && S.data.pageSizes[String(p).split('-')[0]]) || S.data.pageSize;
 const STORE_KEY = 'catprep.progress.v1';
 const SETTINGS_KEY = 'catprep.settings.v1';
 const MARKS = { correct: 3, wrongMCQ: -1, wrongTITA: 0 };
@@ -178,11 +179,12 @@ function renderSection(sec) {
   const name = S.data.sections[sec]; if (!name) return renderDashboard();
   const chs = S.data.chapters.filter(c => c.section === sec);
   const papers = S.data.chapters.filter(c => c.section === 'PAPERS');
-  const ss = stats(sec === 'PAPERS' ? S.data.questions.filter(q => q.ch.startsWith('p')) : S.data.questions.filter(q => q.sec === sec));
+  const paperIds = new Set(papers.map(c => c.id));
+  const ss = stats(sec === 'PAPERS' ? S.data.questions.filter(q => paperIds.has(q.ch)) : S.data.questions.filter(q => q.sec === sec));
   let html = `<div><h1 class="with-ic"><span class="badge-ic lg">${icon(sec)}</span>${esc(name)}</h1><p class="lead">${ss.total} questions · ${ss.attempted} attempted${accuracy(ss) ? ' · ' + accuracy(ss) : ''}${ss.time ? ' · ' + fmtTime(ss.time) : ''}</p>`;
   const row = (c, label, qs, href) => { const cs = stats(qs); return `<a class="row crow" href="${href}"><span class="n">${label}</span><span class="t">${esc(c.title)}</span><span class="prog">${ring(cs)}<span>${cs.attempted}<i> / ${cs.total}</i></span></span></a>`; };
   if (sec === 'PAPERS') {
-    html += `<p class="lead" style="margin-top:4px">Full papers from the book, solved. Their questions also count towards the Quant, DILR and VARC figures.</p><div class="rows" style="margin-top:18px">`;
+    html += `<p class="lead" style="margin-top:4px">CAT 2024 and 2025 (all slots, official answer keys) and the book's solved 2017–2019 papers. Their questions also count towards the Quant, DILR and VARC figures.</p><div class="rows" style="margin-top:18px">`;
     for (const c of papers) html += row(c, '', S.chapterQs.get(c.id) || [], `#/ch/${c.id}`);
     html += '</div>';
   } else {
@@ -280,7 +282,7 @@ function matchStatus(q, st) {
 /* ---------- crops ---------- */
 function cropSVG(r, scale) {
   const [p, x0, y0, x1, y1] = r; const w = x1 - x0, h = y1 - y0;
-  const [PW, PH] = S.data.pageSize;
+  const [PW, PH] = pageSize(p);
   const width = `clamp(${Math.round(w)}px, 100%, ${Math.round(w * (scale || 2))}px)`;
   return `<svg class="crop" viewBox="${x0} ${y0} ${w} ${h}" style="aspect-ratio:${w}/${h};width:${width}" preserveAspectRatio="xMinYMin meet"><image href="${PAGE_IMG(p)}" x="0" y="0" width="${PW}" height="${PH}"/></svg>`;
 }
@@ -678,7 +680,7 @@ async function questionImage(q) {
   const d = q.dir && S.data.directions[q.dir];
   if (d) rects.push(...d.rects);
   rects.push(...q.rects);
-  const [PW] = S.data.pageSize;
+  const [PW] = pageSize(rects[0][0]);
   const imgs = new Map();
   for (const r of rects) if (!imgs.has(r[0])) imgs.set(r[0], loadImg(PAGE_IMG(r[0])));
   for (const [p, pr] of imgs) imgs.set(p, await pr);

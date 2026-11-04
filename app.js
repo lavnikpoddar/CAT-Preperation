@@ -13,7 +13,7 @@ const LETTERS = ['a', 'b', 'c', 'd', 'e'];
 const S = {
   data: null, byId: new Map(), chapterQs: new Map(), units: new Map(), unitOf: new Map(),
   progress: load(STORE_KEY, { attempts: {}, bookmarks: {}, sets: {}, last: null }),
-  settings: load(SETTINGS_KEY, { apiKey: '', model: 'claude-opus-5-5', panelW: 400, panelOpen: false, textMode: true }),
+  settings: load(SETTINGS_KEY, { apiKey: '', model: 'claude-opus-5-5', panelW: 400, panelOpen: false, textMode: true, examDate: '2026-11-29' }),
   filters: {}, t: null, chats: {}, unit: null, picks: {},
 };
 
@@ -70,6 +70,13 @@ function stats(qs) {
   }
   return st;
 }
+// Approximate 99th-percentile targets per section for a 40-minute section,
+// from coaching-institute estimates for recent CAT papers (not official).
+const TARGETS = {
+  QA:   { attempts: '15 of 22', accuracy: 85, perAttempt: 2.4, time: 160 },
+  DILR: { attempts: '13 of 22', accuracy: 85, perAttempt: 2.4, time: 180 },
+  VARC: { attempts: '18 of 24', accuracy: 85, perAttempt: 2.4, time: 130 },
+};
 const pct = (a, b) => b ? Math.round(100 * a / b) : 0;
 const accuracy = st => st.correct + st.wrong ? pct(st.correct, st.correct + st.wrong) + '%' : null;
 
@@ -97,30 +104,42 @@ function route() {
 
 /* ---------- dashboard ---------- */
 function renderDashboard() {
-  const all = stats(S.data.questions);
   const last = S.progress.last && S.byId.get(S.progress.last);
+  const exam = new Date((S.settings.examDate || '2026-11-29') + 'T00:00:00');
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const days = Math.round((exam - today) / 86400000);
+  const when = exam.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
   let html = `<div class="hero">
-    <h1>CAT Prep</h1>
-    <p class="lead">Face 2 Face CAT · 1993–2019 · ${all.total.toLocaleString()} questions</p>
-    <div class="stats">
-      <div class="stat"><b>${all.attempted}</b><span>attempted</span></div>
-      <div class="stat"><b>${accuracy(all) || '–'}</b><span>accuracy</span></div>
-      <div class="stat"><b>${all.score > 0 ? '+' : ''}${all.score}</b><span>net score</span></div>
-      <div class="stat"><b>${fmtTime(all.time)}</b><span>time</span></div>
-    </div>
+    <h1>${days > 1 ? days + ' days to CAT' : days === 1 ? 'CAT is tomorrow' : days === 0 ? 'CAT is today' : 'CAT was ' + (-days) + ' days ago'}</h1>
+    <p class="lead">${when}</p>
     ${last ? `<a class="resume" href="#/q/${last.id}">Resume · ${esc(chapter(last.ch).title)} Q${last.n}</a>` : ''}
   </div>`;
   for (const [sec, name] of Object.entries(S.data.sections)) {
     const chs = S.data.chapters.filter(c => c.section === sec);
-    const ss = stats(chs.flatMap(c => S.chapterQs.get(c.id) || []));
-    html += `<div class="sec-head"><h2><a href="#/sec/${sec}">${esc(name)}</a></h2><span>${ss.attempted} / ${ss.total}${accuracy(ss) ? ' · ' + accuracy(ss) : ''}</span></div><div class="rows">`;
+    const st = stats(chs.flatMap(c => S.chapterQs.get(c.id) || []));
+    html += `<div class="sec-head"><h2><a href="#/sec/${sec}">${esc(name)}</a></h2><span>${st.attempted} / ${st.total}</span></div>
+    ${metricsHTML(st, TARGETS[sec])}<div class="rows">`;
     for (const c of chs) {
       const cs = stats(S.chapterQs.get(c.id) || []);
       html += `<a class="row" href="#/ch/${c.id}"><span class="n">${c.num}</span><span class="t">${esc(c.title)}${bar(cs)}</span><span class="r">${cs.attempted} / ${cs.total}</span></a>`;
     }
     html += `</div>`;
   }
+  html += `<p class="foot">Targets are rough 99th-percentile benchmarks for a 40-minute section, from coaching-institute estimates for recent CAT papers, not official figures. Time is per attempted question, including set reading.</p>`;
   app().innerHTML = html;
+}
+function metricsHTML(st, t) {
+  const graded = st.correct + st.wrong;
+  const acc = graded ? Math.round(100 * st.correct / graded) : null;
+  const per = st.attempted ? st.score / st.attempted : null;
+  const avg = st.attempted ? st.time / st.attempted : null;
+  const grade = (v, ok) => v === null ? '' : ok ? 'good' : 'low';
+  return `<div class="metrics">
+    <div class="m"><b>${st.attempted}</b><span>attempted</span><i>exam pace ${t.attempts}</i></div>
+    <div class="m ${grade(acc, acc >= t.accuracy)}"><b>${acc === null ? '–' : acc + '%'}</b><span>accuracy</span><i>target ≥ ${t.accuracy}%</i></div>
+    <div class="m ${grade(per, per >= t.perAttempt)}"><b>${st.score > 0 ? '+' : ''}${st.score}</b><span>net score${per === null ? '' : ' · ' + per.toFixed(1) + ' per attempt'}</span><i>target ${t.perAttempt} per attempt</i></div>
+    <div class="m ${grade(avg, avg <= t.time)}"><b>${avg === null ? '–' : fmtTime(avg)}</b><span>avg time per question</span><i>target ≤ ${fmtTime(t.time)}</i></div>
+  </div>`;
 }
 function renderSection(sec) {
   const name = S.data.sections[sec]; if (!name) return renderDashboard();
@@ -604,6 +623,9 @@ function renderSettings() {
     <p class="note">${st.attempted} attempts, ${fmtTime(st.time)} recorded, ${Object.values(S.progress.bookmarks).filter(Boolean).length} bookmarks. Stored in this browser only.</p>
     <p class="actions"><button class="btn" data-export>Export</button><button class="btn" data-import>Import</button><input type="file" accept="application/json" data-file hidden><button class="btn quiet" data-reset>Reset everything</button></p>
     <hr>
+    <label>Exam date</label>
+    <input type="date" data-exam value="${esc(S.settings.examDate || '2026-11-29')}">
+    <p class="note">Used for the countdown on the overview. CAT 2026 is on 29 November 2026.</p>
     <label>Questions</label>
     <select data-textmode><option value="1">Text where it can be read from the book reliably, images otherwise</option><option value="0">Always the book's own images</option></select>
     <p class="note">Prototype: plain-prose questions, options, passages, data tables and solutions are rebuilt as text; anything with maths, figures or charts stays an image. Each transcribed question has an “original” link.</p>
@@ -615,6 +637,7 @@ function renderSettings() {
   </div>`;
   $('[data-model]').value = S.settings.model;
   $('[data-theme]').value = document.documentElement.dataset.theme || '';
+  $('[data-exam]').onchange = e => { if (e.target.value) { S.settings.examDate = e.target.value; saveSettings(); } };
   $('[data-textmode]').value = useText() ? '1' : '0';
   $('[data-textmode]').onchange = e => { S.settings.textMode = e.target.value === '1'; saveSettings(); };
   $('[data-save]').onclick = () => { S.settings.apiKey = $('[data-key]').value.trim(); S.settings.model = $('[data-model]').value; saveSettings(); $('#saved').textContent = 'Saved.'; };

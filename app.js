@@ -117,13 +117,10 @@ function renderDashboard() {
   for (const [sec, name] of Object.entries(S.data.sections)) {
     const chs = S.data.chapters.filter(c => c.section === sec);
     const st = stats(chs.flatMap(c => S.chapterQs.get(c.id) || []));
-    html += `<div class="sec-head"><h2><a href="#/sec/${sec}">${esc(name)}</a></h2><span>${st.attempted} / ${st.total}</span></div>
-    ${metricsHTML(st, TARGETS[sec])}<div class="rows">`;
-    for (const c of chs) {
-      const cs = stats(S.chapterQs.get(c.id) || []);
-      html += `<a class="row" href="#/ch/${c.id}"><span class="n">${c.num}</span><span class="t">${esc(c.title)}${bar(cs)}</span><span class="r">${cs.attempted} / ${cs.total}</span></a>`;
-    }
-    html += `</div>`;
+    html += `<a class="secbox" href="#/sec/${sec}">
+      <div class="secbox-head"><span>${esc(name)}</span><span class="muted">${st.attempted} of ${st.total} done →</span></div>
+      ${metricsHTML(st, TARGETS[sec])}
+    </a>`;
   }
   html += `<p class="foot">Targets are rough 99th-percentile benchmarks for a 40-minute section, from coaching-institute estimates for recent CAT papers, not official figures. Time is per attempted question, including set reading.</p>`;
   app().innerHTML = html;
@@ -134,11 +131,11 @@ function metricsHTML(st, t) {
   const per = st.attempted ? st.score / st.attempted : null;
   const avg = st.attempted ? st.time / st.attempted : null;
   const grade = (v, ok) => v === null ? '' : ok ? 'good' : 'low';
-  return `<div class="metrics">
+  return `<div class="mgrid">
     <div class="m"><b>${st.attempted}</b><span>attempted</span><i>exam pace ${t.attempts}</i></div>
     <div class="m ${grade(acc, acc >= t.accuracy)}"><b>${acc === null ? '–' : acc + '%'}</b><span>accuracy</span><i>target ≥ ${t.accuracy}%</i></div>
-    <div class="m ${grade(per, per >= t.perAttempt)}"><b>${st.score > 0 ? '+' : ''}${st.score}</b><span>net score${per === null ? '' : ' · ' + per.toFixed(1) + ' per attempt'}</span><i>target ${t.perAttempt} per attempt</i></div>
-    <div class="m ${grade(avg, avg <= t.time)}"><b>${avg === null ? '–' : fmtTime(avg)}</b><span>avg time per question</span><i>target ≤ ${fmtTime(t.time)}</i></div>
+    <div class="m ${grade(per, per >= t.perAttempt)}"><b>${st.score > 0 ? '+' : ''}${st.score}</b><span>net score${per === null ? '' : ' · ' + per.toFixed(1) + '/q'}</span><i>target ${t.perAttempt} per attempt</i></div>
+    <div class="m ${grade(avg, avg <= t.time)}"><b>${avg === null ? '–' : fmtTime(avg)}</b><span>avg time / question</span><i>target ≤ ${fmtTime(t.time)}</i></div>
   </div>`;
 }
 function renderSection(sec) {
@@ -158,25 +155,43 @@ function bar(st) {
 }
 
 /* ---------- chapter ---------- */
+const ERAS = [['r:2010-2016', '2010–2016'], ['r:2000-2009', '2000–2009'], ['r:1993-1999', '1993–1999']];
+function yearMatch(q, v) {
+  if (v === 'all') return true;
+  if (v.startsWith('r:')) { const [a, b] = v.slice(2).split('-').map(Number); return q.year >= a && q.year <= b; }
+  return String(q.year) === v;
+}
+function pill(attr, value, def, options) {
+  return `<label class="pill ${value !== def ? 'on' : ''}"><select ${attr}>${options}</select></label>`;
+}
 function renderChapter(chId) {
   const c = chapter(chId); if (!c) return renderDashboard();
   const qs = S.chapterQs.get(chId) || [];
-  const f = S.filters[chId] || (S.filters[chId] = { year: 'all', status: 'all', sub: 'all' });
-  const years = [...new Set(qs.map(q => q.year).filter(Boolean))].sort((a, b) => b - a);
-  const match = q => (f.year === 'all' || String(q.year) === f.year) && (f.sub === 'all' || q.sub === f.sub) && matchStatus(q, f.status);
-  const units = S.units.get(chId).map(u => ({ u, qs: u.qs.filter(match) })).filter(x => x.qs.length);
+  const f = S.filters[chId] || (S.filters[chId] = { year: 'all', status: 'all', sub: 'all', sort: 'book' });
+  const count = {}; qs.forEach(q => { if (q.year) count[q.year] = (count[q.year] || 0) + 1; });
+  const years = Object.keys(count).map(Number).sort((a, b) => b - a);
+  const match = q => yearMatch(q, f.year) && (f.sub === 'all' || q.sub === f.sub) && matchStatus(q, f.status);
+  let units = S.units.get(chId).map(u => ({ u, qs: u.qs.filter(match) })).filter(x => x.qs.length);
+  if (f.sort !== 'book') units = units.slice().sort((a, b) => ((b.qs[0].year || 0) - (a.qs[0].year || 0)) * (f.sort === 'new' ? 1 : -1));
+  const nq = units.reduce((n, x) => n + x.qs.length, 0);
   const cs = stats(qs);
   const firstU = units.find(x => x.qs.some(q => !attempt(q.id))) || units[0];
+  const eraCount = v => qs.filter(q => yearMatch(q, v)).length;
+  const yearOpts = `<option value="all">All years</option>
+    <optgroup label="Periods">${ERAS.map(([v, l]) => eraCount(v) ? `<option value="${v}">${l} · ${eraCount(v)}</option>` : '').join('')}</optgroup>
+    <optgroup label="Year">${years.map(y => `<option value="${y}">${y} · ${count[y]}</option>`).join('')}</optgroup>`;
   let html = `<a class="back" href="#/sec/${c.section}">${esc(S.data.sections[c.section])}</a>
   <h1>${esc(c.title)}</h1>
   <p class="lead">${cs.total} questions · ${cs.attempted} attempted${accuracy(cs) ? ' · ' + accuracy(cs) : ''}${cs.time ? ' · ' + fmtTime(cs.time) : ''}</p>
-  <div class="years"><a class="${f.year === 'all' ? 'on' : ''}" data-year="all">All years</a>${years.map(y => `<a class="${f.year === String(y) ? 'on' : ''}" data-year="${y}">${y}</a>`).join('')}</div>
-  <div class="tools">
-    <span>
-      <select class="quiet" data-status><option value="all">All questions</option><option value="new">Not attempted</option><option value="correct">Correct</option><option value="wrong">Wrong</option><option value="unmarked">Unmarked</option><option value="bookmarked">Bookmarked</option></select>
-      ${c.subtopics.length ? ` <select class="quiet" data-sub><option value="all">All topics</option>${c.subtopics.map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('')}</select>` : ''}
-    </span>
-    ${firstU ? `<a class="btn primary" href="#/q/${(firstU.qs.find(q => !attempt(q.id)) || firstU.qs[0]).id}">Start</a>` : ''}
+  <div class="filterbar">
+    <div class="pills">
+      ${pill('data-year', f.year, 'all', yearOpts)}
+      ${pill('data-status', f.status, 'all', '<option value="all">Any status</option><option value="new">Not attempted</option><option value="correct">Correct</option><option value="wrong">Wrong</option><option value="unmarked">Unmarked</option><option value="bookmarked">Bookmarked</option>')}
+      ${c.subtopics.length ? pill('data-sub', f.sub, 'all', `<option value="all">All topics</option>${c.subtopics.map(x => `<option value="${esc(x)}">${esc(x)}</option>`).join('')}`) : ''}
+      ${pill('data-sort', f.sort, 'book', '<option value="book">Book order</option><option value="new">Newest first</option><option value="old">Oldest first</option>')}
+      ${f.year !== 'all' || f.status !== 'all' || f.sub !== 'all' || f.sort !== 'book' ? '<a class="clear" data-clear>Clear</a>' : ''}
+    </div>
+    <div class="fb-right"><span class="muted small">${nq} question${nq === 1 ? '' : 's'}</span>${firstU ? `<a class="btn primary" href="#/q/${(firstU.qs.find(q => !attempt(q.id)) || firstU.qs[0]).id}">Start</a>` : ''}</div>
   </div><div class="rows">`;
   for (const { u, qs: uq } of units) {
     const first = uq[0], lastQ = uq[uq.length - 1];
@@ -188,13 +203,11 @@ function renderChapter(chId) {
       <span class="t">${first.year ? 'CAT ' + first.year : '<span class="muted">year not stated</span>'}${first.sub ? ' · ' + esc(first.sub) : ''}${uq.length > 1 ? ` · ${uq.length} questions` : ''}${uq.some(q => S.progress.bookmarks[q.id]) ? ' ★' : ''}<span class="dots">${uq.map(q => `<span class="dot ${attempt(q.id) ? attempt(q.id).result : ''}"></span>`).join('')}</span></span>
       <span class="r">${types}${st.time ? ' · ' + fmtTime(st.time) : ''}</span></a>`;
   }
-  html += `</div>${units.length ? '' : '<p class="muted small">Nothing matches these filters.</p>'}`;
+  html += `</div>${units.length ? '' : '<p class="muted small" style="margin-top:14px">Nothing matches these filters.</p>'}`;
   app().innerHTML = html;
-  $('[data-status]').value = f.status;
-  if ($('[data-sub]')) $('[data-sub]').value = f.sub;
-  app().querySelectorAll('[data-year]').forEach(el => el.onclick = () => { f.year = el.dataset.year; renderChapter(chId); });
-  $('[data-status]').onchange = e => { f.status = e.target.value; renderChapter(chId); };
-  if ($('[data-sub]')) $('[data-sub]').onchange = e => { f.sub = e.target.value; renderChapter(chId); };
+  const bind = (attr, key) => { const el = $(`[${attr}]`); if (!el) return; el.value = f[key]; el.onchange = e => { f[key] = e.target.value; renderChapter(chId); }; };
+  bind('data-year', 'year'); bind('data-status', 'status'); bind('data-sub', 'sub'); bind('data-sort', 'sort');
+  const clr = $('[data-clear]'); if (clr) clr.onclick = () => { Object.assign(f, { year: 'all', status: 'all', sub: 'all', sort: 'book' }); renderChapter(chId); };
 }
 function matchStatus(q, st) {
   if (st === 'all') return true;
@@ -607,7 +620,7 @@ async function streamClaude(messages, onText) {
 /* ---------- settings ---------- */
 function renderSettings() {
   const st = stats(S.data.questions);
-  app().innerHTML = `<a class="back" href="#/">Dashboard</a><h1>Settings</h1>
+  app().innerHTML = `<h1>Settings</h1>
   <div class="form">
     <label>Anthropic API key</label><input type="password" data-key value="${esc(S.settings.apiKey)}" placeholder="sk-ant-…">
     <p class="note">Kept only in this browser and sent straight to api.anthropic.com. Create one at console.anthropic.com.</p>

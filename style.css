@@ -422,6 +422,8 @@ h1.with-ic { display: flex; align-items: center; gap: 14px; }
 .rtitle .lk { width: 13px; height: 13px; opacity: 0; transition: opacity .15s; }
 .rrow:hover .rtitle .lk { opacity: .6; }
 .rrow.done .rtitle { color: var(--muted); }
+.rrow.first { border-bottom: 0; padding-bottom: 6px; }
+.rrow.second { padding-top: 6px; }
 .tickbtn { width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--line); background: var(--card); color: transparent; cursor: pointer; display: grid; place-items: center; padding: 0; transition: border-color .15s, background .15s, color .15s; }
 .tickbtn .ic { width: 15px; height: 15px; stroke-width: 2.2; }
 .tickbtn:hover { border-color: color-mix(in srgb, var(--fg) 35%, var(--line)); color: var(--muted); }

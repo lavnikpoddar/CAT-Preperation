@@ -571,54 +571,60 @@ function updateDock() {
 /* ---------- reading list ---------- */
 const READINGS = [
   ['Week 1 · clear writers, big ideas', [
-    ['George Orwell', 'Politics and the English Language', 1946, 'Language', 'https://www.orwell.ru/library/essays/politics/english/e_polit'],
-    ['Vannevar Bush', 'As We May Think', 1945, 'Technology', 'https://www.theatlantic.com/magazine/archive/1945/07/as-we-may-think/303881/'],
-    ['Garrett Hardin', 'The Tragedy of the Commons', 1968, 'Ecology / economics', 'https://math.uchicago.edu/~shmuel/Modeling/Hardin,%20Tragedy%20of%20the%20Commons.pdf'],
-    ['Bertrand Russell', 'In Praise of Idleness', 1932, 'Work and society', 'https://harpers.org/archive/1932/10/in-praise-of-idleness/'],
-    ['Richard Feynman', 'There’s Plenty of Room at the Bottom', 1959, 'Physics', 'https://calteches.library.caltech.edu/1976/1/1960Bottom.pdf'],
-    ['Stanley Milgram', 'Behavioral Study of Obedience', 1963, 'Psychology', 'https://doi.org/10.1037/h0040525'],
-    ['Martin Luther King Jr.', 'Letter from Birmingham Jail', 1963, 'Rhetoric / ethics', 'https://www.africa.upenn.edu/Articles_Gen/Letter_Birmingham.html'],
+    ['George Orwell', 'Politics and the English Language', 1946, 'Language', 'https://www.orwell.ru/library/essays/politics/english/e_polit', ['Nicholas Carr', 'Is Google Making Us Stupid?', 2008, 'Technology / reading', 'https://www.theatlantic.com/magazine/archive/2008/07/is-google-making-us-stupid/306868/']],
+    ['Vannevar Bush', 'As We May Think', 1945, 'Technology', 'https://www.theatlantic.com/magazine/archive/1945/07/as-we-may-think/303881/', ['Lawrence Lessig', 'Code Is Law', 2000, 'Law / tech', 'https://www.harvardmagazine.com/2000/01/code-is-law-html']],
+    ['Garrett Hardin', 'The Tragedy of the Commons', 1968, 'Ecology / economics', 'https://math.uchicago.edu/~shmuel/Modeling/Hardin,%20Tragedy%20of%20the%20Commons.pdf', ['Paul Crutzen', 'Geology of Mankind', 2002, 'Earth science', 'https://www.nature.com/articles/415023a', 'one page']],
+    ['Bertrand Russell', 'In Praise of Idleness', 1932, 'Work and society', 'https://harpers.org/archive/1932/10/in-praise-of-idleness/', ['Daniel Kahneman & Angus Deaton', 'High Income Improves Evaluation of Life but Not Emotional Well-Being', 2010, 'Psychology / economics', 'https://www.pnas.org/doi/10.1073/pnas.1011492107']],
+    ['Richard Feynman', 'There’s Plenty of Room at the Bottom', 1959, 'Physics', 'https://calteches.library.caltech.edu/1976/1/1960Bottom.pdf', ['Abhijit Banerjee & Esther Duflo', 'The Economic Lives of the Poor', 2007, 'Development economics', 'https://www.aeaweb.org/articles?id=10.1257/jep.21.1.141']],
+    ['Stanley Milgram', 'Behavioral Study of Obedience', 1963, 'Psychology', 'https://doi.org/10.1037/h0040525', ['Cass Sunstein', 'Nudging: A Very Short Guide', 2014, 'Law / behaviour', 'https://papers.ssrn.com/sol3/papers.cfm?abstract_id=2499658']],
+    ['Martin Luther King Jr.', 'Letter from Birmingham Jail', 1963, 'Rhetoric / ethics', 'https://www.africa.upenn.edu/Articles_Gen/Letter_Birmingham.html', ['Supreme Court of India', 'Shreya Singhal v. Union of India', 2015, 'Indian constitutional law', 'https://indiankanoon.org/doc/110813550/', 'the free-speech sections']],
   ]],
   ['Week 2 · denser arguments', [
-    ['Alan Turing', 'Computing Machinery and Intelligence', 1950, 'AI / philosophy', 'https://academic.oup.com/mind/article/LIX/236/433/986238', 'sections 1–6'],
-    ['F. A. Hayek', 'The Use of Knowledge in Society', 1945, 'Economics', 'https://www.econlib.org/library/Essays/hykKnw.html'],
-    ['Peter Singer', 'Famine, Affluence, and Morality', 1972, 'Ethics', 'https://rintintin.colorado.edu/~vancecd/phil308/Singer2.pdf'],
-    ['J. C. R. Licklider', 'Man-Computer Symbiosis', 1960, 'Human–computer interaction', 'https://groups.csail.mit.edu/medg/people/psz/Licklider.html'],
-    ['Mark Granovetter', 'The Strength of Weak Ties', 1973, 'Sociology', 'https://snap.stanford.edu/class/cs224w-readings/granovetter73weakties.pdf', 'skim past any maths'],
-    ['Virginia Woolf', 'A Room of One’s Own', 1929, 'Literature', 'https://gutenberg.net.au/ebooks02/0200791h.html', 'chapter 1'],
-    ['Aldo Leopold', 'The Land Ethic', 1949, 'Environment', 'https://www.aldoleopold.org/about/the-land-ethic/'],
+    ['Alan Turing', 'Computing Machinery and Intelligence', 1950, 'AI / philosophy', 'https://academic.oup.com/mind/article/LIX/236/433/986238', 'sections 1–6', ['Emily Bender, Timnit Gebru et al.', 'On the Dangers of Stochastic Parrots', 2021, 'AI ethics', 'https://dl.acm.org/doi/10.1145/3442188.3445922']],
+    ['F. A. Hayek', 'The Use of Knowledge in Society', 1945, 'Economics', 'https://www.econlib.org/library/Essays/hykKnw.html', ['Satoshi Nakamoto', 'Bitcoin: A Peer-to-Peer Electronic Cash System', 2008, 'Technology / finance', 'https://bitcoin.org/bitcoin.pdf']],
+    ['Peter Singer', 'Famine, Affluence, and Morality', 1972, 'Ethics', 'https://rintintin.colorado.edu/~vancecd/phil308/Singer2.pdf', ['Jonathan Haidt', 'The Emotional Dog and Its Rational Tail', 2001, 'Moral psychology', 'https://doi.org/10.1037/0033-295X.108.4.814']],
+    ['J. C. R. Licklider', 'Man-Computer Symbiosis', 1960, 'Human–computer interaction', 'https://groups.csail.mit.edu/medg/people/psz/Licklider.html', ['Shoshana Zuboff', 'Big Other: Surveillance Capitalism', 2015, 'Technology / society', 'https://doi.org/10.1057/jit.2015.5']],
+    ['Mark Granovetter', 'The Strength of Weak Ties', 1973, 'Sociology', 'https://snap.stanford.edu/class/cs224w-readings/granovetter73weakties.pdf', 'skim past any maths', ['Thomas Piketty & Emmanuel Saez', 'Inequality in the Long Run', 2014, 'Economics', 'https://www.science.org/doi/10.1126/science.1251936']],
+    ['Virginia Woolf', 'A Room of One’s Own', 1929, 'Literature', 'https://gutenberg.net.au/ebooks02/0200791h.html', 'chapter 1', ['Supreme Court of India', 'K. S. Puttaswamy v. Union of India', 2017, 'Indian law (privacy)', 'https://indiankanoon.org/doc/91938676/', 'Justice Chandrachud’s conclusions']],
+    ['Aldo Leopold', 'The Land Ethic', 1949, 'Environment', 'https://www.aldoleopold.org/about/the-land-ethic/', ['Elinor Ostrom', 'Beyond Markets and States', 2010, 'Economics / governance', 'https://www.nobelprize.org/prizes/economic-sciences/2009/ostrom/lecture/', 'her Nobel lecture']],
   ]],
   ['Week 3 · the hardest stretch', [
-    ['Thomas Nagel', 'What Is It Like to Be a Bat?', 1974, 'Philosophy of mind', 'https://www.sas.upenn.edu/~cavitch/pdf-library/Nagel_Bat.pdf'],
-    ['George Akerlof', 'The Market for “Lemons”', 1970, 'Economics', 'https://doi.org/10.2307/1879431', 'sections I–II'],
-    ['Eugene Wigner', 'The Unreasonable Effectiveness of Mathematics in the Natural Sciences', 1960, 'Philosophy of science', 'https://www.maths.ed.ac.uk/~v1ranick/papers/wigner.pdf'],
-    ['Amos Tversky & Daniel Kahneman', 'Judgment under Uncertainty: Heuristics and Biases', 1974, 'Decision-making', 'https://www.science.org/doi/10.1126/science.185.4157.1124'],
-    ['Walter Benjamin', 'The Work of Art in the Age of Mechanical Reproduction', 1935, 'Art theory', 'https://www.marxists.org/reference/subject/philosophy/works/ge/benjamin.htm'],
-    ['Stephen Jay Gould & Richard Lewontin', 'The Spandrels of San Marco', 1979, 'Biology', 'https://royalsocietypublishing.org/doi/10.1098/rspb.1979.0086'],
-    ['Herbert Simon', 'The Architecture of Complexity', 1962, 'Systems thinking', 'https://www2.econ.iastate.edu/tesfatsi/ArchitectureOfComplexity.HSimon1962.pdf'],
+    ['Thomas Nagel', 'What Is It Like to Be a Bat?', 1974, 'Philosophy of mind', 'https://www.sas.upenn.edu/~cavitch/pdf-library/Nagel_Bat.pdf', ['Joseph Henrich, Steven Heine & Ara Norenzayan', 'The Weirdest People in the World?', 2010, 'Psychology / anthropology', 'https://doi.org/10.1017/S0140525X0999152X', 'first sections and conclusion']],
+    ['George Akerlof', 'The Market for “Lemons”', 1970, 'Economics', 'https://doi.org/10.2307/1879431', 'sections I–II', ['Lina Khan', 'Amazon’s Antitrust Paradox', 2017, 'Competition law', 'https://www.yalelawjournal.org/note/amazons-antitrust-paradox', 'introduction and conclusion']],
+    ['Eugene Wigner', 'The Unreasonable Effectiveness of Mathematics in the Natural Sciences', 1960, 'Philosophy of science', 'https://www.maths.ed.ac.uk/~v1ranick/papers/wigner.pdf', ['Ashish Vaswani et al.', 'Attention Is All You Need', 2017, 'AI', 'https://arxiv.org/abs/1706.03762', 'introduction and conclusion only']],
+    ['Amos Tversky & Daniel Kahneman', 'Judgment under Uncertainty: Heuristics and Biases', 1974, 'Decision-making', 'https://www.science.org/doi/10.1126/science.185.4157.1124', ['Daniel Kahneman & Gary Klein', 'Conditions for Intuitive Expertise: A Failure to Disagree', 2009, 'Psychology', 'https://doi.org/10.1037/a0016755']],
+    ['Walter Benjamin', 'The Work of Art in the Age of Mechanical Reproduction', 1935, 'Art theory', 'https://www.marxists.org/reference/subject/philosophy/works/ge/benjamin.htm', ['Danielle Citron & Robert Chesney', 'Deep Fakes: A Looming Challenge for Privacy, Democracy, and National Security', 2019, 'Law / technology', 'https://papers.ssrn.com/sol3/papers.cfm?abstract_id=3213954', 'parts I–II']],
+    ['Stephen Jay Gould & Richard Lewontin', 'The Spandrels of San Marco', 1979, 'Biology', 'https://royalsocietypublishing.org/doi/10.1098/rspb.1979.0086', ['Joseph Simmons, Leif Nelson & Uri Simonsohn', 'False-Positive Psychology', 2011, 'Psychology / research methods', 'https://doi.org/10.1177/0956797611417632']],
+    ['Herbert Simon', 'The Architecture of Complexity', 1962, 'Systems thinking', 'https://www2.econ.iastate.edu/tesfatsi/ArchitectureOfComplexity.HSimon1962.pdf', ['Johan Rockström et al.', 'A Safe Operating Space for Humanity', 2009, 'Earth system science', 'https://www.nature.com/articles/461472a']],
   ]],
   ['Final days · lighter, to stay sharp', [
-    ['Ronald Coase', 'The Nature of the Firm', 1937, 'Economics', 'https://onlinelibrary.wiley.com/doi/10.1111/j.1468-0335.1937.tb00002.x'],
-    ['Karl Popper', 'Science: Conjectures and Refutations', 1963, 'Philosophy of science', 'https://www.stephenjaygould.org/ctrl/popper_falsification.html'],
-    ['Philip Anderson', 'More Is Different', 1972, 'Physics', 'https://cse-robotics.engr.tamu.edu/dshell/cs689/papers/anderson72more_is_different.pdf', 'a few pages'],
-    ['Edmund Gettier', 'Is Justified True Belief Knowledge?', 1963, 'Epistemology', 'https://fitelson.org/proseminar/gettier.pdf', 'three pages'],
+    ['Ronald Coase', 'The Nature of the Firm', 1937, 'Economics', 'https://onlinelibrary.wiley.com/doi/10.1111/j.1468-0335.1937.tb00002.x', ['Daniel Solove', '“I’ve Got Nothing to Hide” and Other Misunderstandings of Privacy', 2007, 'Privacy law', 'https://papers.ssrn.com/sol3/papers.cfm?abstract_id=998565']],
+    ['Karl Popper', 'Science: Conjectures and Refutations', 1963, 'Philosophy of science', 'https://www.stephenjaygould.org/ctrl/popper_falsification.html', ['John Ioannidis', 'Why Most Published Research Findings Are False', 2005, 'Science / statistics', 'https://journals.plos.org/plosmedicine/article?id=10.1371/journal.pmed.0020124']],
+    ['Philip Anderson', 'More Is Different', 1972, 'Physics', 'https://cse-robotics.engr.tamu.edu/dshell/cs689/papers/anderson72more_is_different.pdf', 'a few pages', ['Nick Bostrom', 'Are You Living in a Computer Simulation?', 2003, 'Philosophy', 'https://www.simulation-argument.com/simulation.html']],
+    ['Edmund Gettier', 'Is Justified True Belief Knowledge?', 1963, 'Epistemology', 'https://fitelson.org/proseminar/gettier.pdf', 'three pages', ['Rich Sutton', 'The Bitter Lesson', 2019, 'AI', 'http://www.incompleteideas.net/IncIdeas/BitterLesson.html', 'a two-page essay']],
   ]],
 ];
 function renderReading() {
   const reads = S.progress.reads || (S.progress.reads = {});
   let day = 0;
-  const groups = READINGS.map(([head, items]) => `<div class="rowhead">${esc(head)}</div>` + items.map(([author, title, year, field, url, note]) => {
-    const n = ++day, done = !!reads[n];
-    return `<div class="row rrow ${done ? 'done' : ''}" data-day="${n}">
-      <button class="tickbtn" type="button" data-tick="${n}" aria-label="${done ? 'Mark unread' : 'Mark read'}" aria-pressed="${done}">${icon('tick')}</button>
-      <span class="n">${n}</span>
+  const rowHTML = (key, n, [author, title, year, field, url, note], second) => {
+    if (Array.isArray(note)) note = null;
+    const done = !!reads[key];
+    return `<div class="row rrow ${done ? 'done' : ''} ${second ? 'second' : 'first'}">
+      <button class="tickbtn" type="button" data-tick="${key}" aria-label="${done ? 'Mark unread' : 'Mark read'}" aria-pressed="${done}">${icon('tick')}</button>
+      <span class="n">${second ? '' : n}</span>
       <span class="t"><a class="rtitle" href="${url}" target="_blank" rel="noopener">${esc(title)}${icon('link', 'lk')}</a>
         <span class="meta">${esc(author)} · ${year}${note ? ' · ' + esc(note) : ''}</span></span>
       <span class="r">${esc(field)}</span>
     </div>`;
+  };
+  const groups = READINGS.map(([head, items]) => `<div class="rowhead">${esc(head)}</div>` + items.map(item => {
+    const n = ++day;
+    const pair = Array.isArray(item[item.length - 1]) ? item[item.length - 1] : null;
+    return rowHTML(String(n), n, item, false) + (pair ? rowHTML(n + 'b', n, pair, true) : '');
   }).join('')).join('');
   app().innerHTML = `<h1 class="with-ic"><span class="badge-ic lg">${icon('reading')}</span>Reading</h1>
-  <p class="lead rlead">Improve your reading muscle. One piece a day for 25 days, rising in difficulty and jumping between fields, the way CAT passages do. Read for the argument, not the facts: what is being claimed, how it is built, and where you would push back.</p>
+  <p class="lead rlead">Improve your reading muscle. Two pieces a day for 25 days: a classic and a modern one that answers or extends it, rising in difficulty and jumping between fields, the way CAT passages do. Read for the argument, not the facts: what is being claimed, how it is built, and where you would push back.</p>
   <div class="rows">${groups}</div>`;
   document.querySelectorAll('[data-tick]').forEach(b => b.onclick = () => {
     const n = b.dataset.tick; if (reads[n]) delete reads[n]; else reads[n] = Date.now(); save(); renderReading();

@@ -111,6 +111,9 @@ const ICON_PATHS = {
   time: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
   flag: '<path d="M6 21V4"/><path d="M6 4.5h11l-2 4 2 4H6"/>',
   PAPERS: '<path d="M7 3.5h7l4 4V20a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1z"/><path d="M14 3.5v4h4"/><path d="M9 12h6M9 16h6"/>',
+  reading: '<path d="M4.5 5.5h6a2 2 0 0 1 2 2v12a1.5 1.5 0 0 0-1.5-1.5h-6.5z"/><path d="M19.5 5.5h-6a2 2 0 0 0-2 2v12a1.5 1.5 0 0 1 1.5-1.5h6.5z"/>',
+  link: '<path d="M10 14L20 4"/><path d="M15 4h5v5"/><path d="M19 13v6a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h6"/>',
+  tick: '<path d="M7 12.5l3.2 3.2L17 9"/>',
 };
 const icon = (name, cls = '') => `<svg class="ic ${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICON_PATHS[name] || ''}</svg>`;
 function ring(st) {
@@ -129,7 +132,7 @@ function route() {
   S.routeSec = (h.match(/[?&]sec=(QA|DILR|VARC)/) || [])[1] || null;
   if (m && m[1] === 'q' && !S.byId.has(m[2])) { location.hash = '#/'; return; }
   const isQ = !!(m && m[1] === 'q');
-  const navKey = h.startsWith('#/settings') ? 'settings' : m && m[1] === 'sec' ? m[2] : m ? chapter(m[1] === 'q' ? S.byId.get(m[2]).ch : m[2]).section : 'home';
+  const navKey = h.startsWith('#/settings') ? 'settings' : h.startsWith('#/reading') ? 'reading' : m && m[1] === 'sec' ? m[2] : m ? chapter(m[1] === 'q' ? S.byId.get(m[2]).ch : m[2]).section : 'home';
   document.querySelectorAll('#nav a').forEach(a => a.classList.toggle('on', a.dataset.nav === navKey));
   document.body.classList.toggle('wide', isQ);
   document.body.classList.toggle('has-dock', isQ);
@@ -137,6 +140,7 @@ function route() {
   $('#ai-toggle').hidden = !isQ;
   if (!isQ) closePanel(true);
   if (h.startsWith('#/settings')) renderSettings();
+  else if (h.startsWith('#/reading')) renderReading();
   else if (m && m[1] === 'ch') renderChapter(m[2]);
   else if (m && m[1] === 'sec') renderSection(m[2]);
   else if (isQ) renderUnit(m[2]);
@@ -562,6 +566,63 @@ function updateDock() {
   $('#next').textContent = S.unit.i + 1 < S.unit.list.length ? '→' : '✓';
   $('#next').title = S.unit.i + 1 < S.unit.list.length ? 'Next' : 'Back to chapter';
   tick();
+}
+
+/* ---------- reading list ---------- */
+const READINGS = [
+  ['Week 1 · clear writers, big ideas', [
+    ['George Orwell', 'Politics and the English Language', 1946, 'Language', 'https://www.orwell.ru/library/essays/politics/english/e_polit'],
+    ['Vannevar Bush', 'As We May Think', 1945, 'Technology', 'https://www.theatlantic.com/magazine/archive/1945/07/as-we-may-think/303881/'],
+    ['Garrett Hardin', 'The Tragedy of the Commons', 1968, 'Ecology / economics', 'https://math.uchicago.edu/~shmuel/Modeling/Hardin,%20Tragedy%20of%20the%20Commons.pdf'],
+    ['Bertrand Russell', 'In Praise of Idleness', 1932, 'Work and society', 'https://harpers.org/archive/1932/10/in-praise-of-idleness/'],
+    ['Richard Feynman', 'There’s Plenty of Room at the Bottom', 1959, 'Physics', 'https://calteches.library.caltech.edu/1976/1/1960Bottom.pdf'],
+    ['Stanley Milgram', 'Behavioral Study of Obedience', 1963, 'Psychology', 'https://doi.org/10.1037/h0040525'],
+    ['Martin Luther King Jr.', 'Letter from Birmingham Jail', 1963, 'Rhetoric / ethics', 'https://www.africa.upenn.edu/Articles_Gen/Letter_Birmingham.html'],
+  ]],
+  ['Week 2 · denser arguments', [
+    ['Alan Turing', 'Computing Machinery and Intelligence', 1950, 'AI / philosophy', 'https://academic.oup.com/mind/article/LIX/236/433/986238', 'sections 1–6'],
+    ['F. A. Hayek', 'The Use of Knowledge in Society', 1945, 'Economics', 'https://www.econlib.org/library/Essays/hykKnw.html'],
+    ['Peter Singer', 'Famine, Affluence, and Morality', 1972, 'Ethics', 'https://rintintin.colorado.edu/~vancecd/phil308/Singer2.pdf'],
+    ['J. C. R. Licklider', 'Man-Computer Symbiosis', 1960, 'Human–computer interaction', 'https://groups.csail.mit.edu/medg/people/psz/Licklider.html'],
+    ['Mark Granovetter', 'The Strength of Weak Ties', 1973, 'Sociology', 'https://snap.stanford.edu/class/cs224w-readings/granovetter73weakties.pdf', 'skim past any maths'],
+    ['Virginia Woolf', 'A Room of One’s Own', 1929, 'Literature', 'https://gutenberg.net.au/ebooks02/0200791h.html', 'chapter 1'],
+    ['Aldo Leopold', 'The Land Ethic', 1949, 'Environment', 'https://www.aldoleopold.org/about/the-land-ethic/'],
+  ]],
+  ['Week 3 · the hardest stretch', [
+    ['Thomas Nagel', 'What Is It Like to Be a Bat?', 1974, 'Philosophy of mind', 'https://www.sas.upenn.edu/~cavitch/pdf-library/Nagel_Bat.pdf'],
+    ['George Akerlof', 'The Market for “Lemons”', 1970, 'Economics', 'https://doi.org/10.2307/1879431', 'sections I–II'],
+    ['Eugene Wigner', 'The Unreasonable Effectiveness of Mathematics in the Natural Sciences', 1960, 'Philosophy of science', 'https://www.maths.ed.ac.uk/~v1ranick/papers/wigner.pdf'],
+    ['Amos Tversky & Daniel Kahneman', 'Judgment under Uncertainty: Heuristics and Biases', 1974, 'Decision-making', 'https://www.science.org/doi/10.1126/science.185.4157.1124'],
+    ['Walter Benjamin', 'The Work of Art in the Age of Mechanical Reproduction', 1935, 'Art theory', 'https://www.marxists.org/reference/subject/philosophy/works/ge/benjamin.htm'],
+    ['Stephen Jay Gould & Richard Lewontin', 'The Spandrels of San Marco', 1979, 'Biology', 'https://royalsocietypublishing.org/doi/10.1098/rspb.1979.0086'],
+    ['Herbert Simon', 'The Architecture of Complexity', 1962, 'Systems thinking', 'https://www2.econ.iastate.edu/tesfatsi/ArchitectureOfComplexity.HSimon1962.pdf'],
+  ]],
+  ['Final days · lighter, to stay sharp', [
+    ['Ronald Coase', 'The Nature of the Firm', 1937, 'Economics', 'https://onlinelibrary.wiley.com/doi/10.1111/j.1468-0335.1937.tb00002.x'],
+    ['Karl Popper', 'Science: Conjectures and Refutations', 1963, 'Philosophy of science', 'https://www.stephenjaygould.org/ctrl/popper_falsification.html'],
+    ['Philip Anderson', 'More Is Different', 1972, 'Physics', 'https://cse-robotics.engr.tamu.edu/dshell/cs689/papers/anderson72more_is_different.pdf', 'a few pages'],
+    ['Edmund Gettier', 'Is Justified True Belief Knowledge?', 1963, 'Epistemology', 'https://fitelson.org/proseminar/gettier.pdf', 'three pages'],
+  ]],
+];
+function renderReading() {
+  const reads = S.progress.reads || (S.progress.reads = {});
+  let day = 0;
+  const groups = READINGS.map(([head, items]) => `<div class="rowhead">${esc(head)}</div>` + items.map(([author, title, year, field, url, note]) => {
+    const n = ++day, done = !!reads[n];
+    return `<div class="row rrow ${done ? 'done' : ''}" data-day="${n}">
+      <button class="tickbtn" type="button" data-tick="${n}" aria-label="${done ? 'Mark unread' : 'Mark read'}" aria-pressed="${done}">${icon('tick')}</button>
+      <span class="n">${n}</span>
+      <span class="t"><a class="rtitle" href="${url}" target="_blank" rel="noopener">${esc(title)}${icon('link', 'lk')}</a>
+        <span class="meta">${esc(author)} · ${year}${note ? ' · ' + esc(note) : ''}</span></span>
+      <span class="r">${esc(field)}</span>
+    </div>`;
+  }).join('')).join('');
+  app().innerHTML = `<h1 class="with-ic"><span class="badge-ic lg">${icon('reading')}</span>Reading</h1>
+  <p class="lead rlead">Improve your reading muscle. One piece a day for 25 days, rising in difficulty and jumping between fields, the way CAT passages do. Read for the argument, not the facts: what is being claimed, how it is built, and where you would push back.</p>
+  <div class="rows">${groups}</div>`;
+  document.querySelectorAll('[data-tick]').forEach(b => b.onclick = () => {
+    const n = b.dataset.tick; if (reads[n]) delete reads[n]; else reads[n] = Date.now(); save(); renderReading();
+  });
 }
 
 /* ---------- keyboard ---------- */

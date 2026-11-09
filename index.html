@@ -32,7 +32,8 @@
     <span id="clock">0:00</span><span id="clock2" class="muted"></span>
   </div>
   <div class="dock-mid">
-    <button class="btn quiet" id="reveal" type="button">Show answer</button>
+    <button class="btn quiet" id="strat" type="button" hidden aria-haspopup="dialog" aria-expanded="false" aria-controls="strat-pop" title="Strategy (S)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.6 10.8c.7.6 1.1 1.3 1.1 2.2h5c0-.9.4-1.6 1.1-2.2A6 6 0 0 0 12 3z"/></svg><span>Show strategy</span></button>
+    <button class="btn quiet" id="reveal" type="button"><span class="rv-long">Show </span>answer</button>
     <button class="btn primary" id="submit" type="button" disabled>Submit</button>
   </div>
   <div class="dock-nav">
@@ -40,6 +41,16 @@
     <a class="icon" id="next" aria-label="Next">→</a>
   </div>
 </div>
+
+<div id="strat-back" hidden></div>
+<section id="strat-pop" role="dialog" aria-labelledby="strat-title" tabindex="-1" hidden>
+  <div class="strat-grab" aria-hidden="true"></div>
+  <header class="strat-head">
+    <div><div class="strat-kicker">Strategy</div><div class="strat-title" id="strat-title"></div></div>
+    <button class="icon" id="strat-close" type="button" title="Close (Esc)" aria-label="Close"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  </header>
+  <div class="strat-body" id="strat-body"></div>
+</section>
 
 <button id="ai-toggle" type="button" hidden aria-label="Ask the tutor">
   <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l1.9 5.1 5.1 1.9-5.1 1.9L12 17.5l-1.9-5.1L5 10.5l5.1-1.9z"/><path d="M18.5 15.5l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z"/></svg>

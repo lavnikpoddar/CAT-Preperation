@@ -54,7 +54,7 @@ async function init() {
   document.addEventListener('keydown', onKey);
   document.addEventListener('visibilitychange', () => { if (document.hidden && S.t && S.t.running) pause(true); });
   document.querySelectorAll('#nav a[data-ic]').forEach(a => a.insertAdjacentHTML('afterbegin', icon(a.dataset.ic)));
-  initDock(); initPanel();
+  initDock(); initStrategy(); initPanel();
   route();
 }
 
@@ -127,6 +127,7 @@ function ring(st) {
 function route() {
   flushUnit();
   S.unit = null; S.picks = {};
+  closeStrategy(true);
   const h = location.hash || '#/';
   const m = h.match(/^#\/(ch|q|sec)\/([^/?]+)/);
   S.routeSec = (h.match(/[?&]sec=(QA|DILR|VARC)/) || [])[1] || null;
@@ -560,6 +561,9 @@ function updateDock() {
   const pick = q && S.picks[q.id];
   $('#submit').disabled = !(q && pick !== undefined && pick !== '');
   $('#reveal').disabled = !todo.length;
+  const sq = strategyQ(), hasStrat = !!(sq && strategyKey(sq));
+  $('#strat').hidden = !hasStrat;
+  if (!hasStrat) closeStrategy(true);
   $('#pause').textContent = S.t && S.t.running ? '❚❚' : '▶';
   $('#pause').classList.toggle('off', !todo.length);
   $('.dock-time').classList.toggle('paused', !(S.t && S.t.running));
@@ -633,6 +637,107 @@ function renderReading() {
   if (!RD.full) loadReadingData().then(() => { if (location.hash.startsWith('#/reading')) renderReading(); });
 }
 
+/* ---------- strategy (popover above the dock; bottom sheet on phones) ---------- */
+const PJ_SIGNALS = [
+  ['Noun, then pointer', '“need access to banks” → “Such access…”'],
+  ['Full name, then short name', '“Michael Hofman, a poet” → “Hofman feels…”'],
+  ['Twin phrases', '“It’s not enough that…” → “Or that…” · “Some…” → “Others…”'],
+  ['Claim, then denial', '“It is often said…” → “That is not true.”'],
+  ['Question, then answer', '“But do people applaud…?” → “No, …”'],
+  ['General, then example', 'a problem → “An accident… is such a case”'],
+  ['Time or steps', 'lump → diagnosis → “Then… it had come back”'],
+];
+const PJ_STEPS = q => [
+  '<b>Mark the pointer words:</b> this, these, such, it, they, he, but, also, then, thus. Each points at the sentence just before it.',
+  '<b>Lock one pair.</b> Find the sentence that pointer needs. Do not guess the full order.',
+  q.opts ? '<b>Strike every option</b> that does not contain your pair. If two survive, lock a second pair.'
+    : '<b>Lock a second pair</b> (there are no options to lean on), then place the sentence that is left.',
+  '<b>Read the order once.</b> Every pointer must land on the previous sentence.',
+];
+const STRATEGY = {
+  pj: { title: 'Para jumble: pair first', steps: PJ_STEPS,
+    lede: 'In this question bank one sure pair alone picks the right option 9 times in 10; the opening sentence alone does it only 1 time in 3.' },
+  'pj-fixed': { title: 'Para jumble: fixed ends', steps: PJ_STEPS,
+    lede: 'The first and last sentences are given, so work from both ends.',
+    tip: 'Find what must <b>follow the first sentence</b> and what must <b>lead into the last</b>. The middle usually falls out.' },
+  'pj-parts': { title: 'Sentence jumble: join by grammar', steps: PJ_STEPS,
+    lede: 'These are parts of one sentence, so grammar gives you the pairs.',
+    tip: 'A part ending in <b>if, that, of, when, than, and</b> is unfinished: find the part that completes it.' },
+  'pj-odd': { title: 'Odd sentence out', signals: 'Signals that chain the four',
+    lede: 'All five share the topic. Four form a chain; one only looks related.',
+    steps: () => [
+      '<b>Find the anchor:</b> the sentence the others lean on, with no pointer word looking backwards.',
+      '<b>Chain four</b> using the signals below. Each should point at the one before it.',
+      '<b>The odd one changes the angle:</b> the method, a background definition, a recommendation, or a pointer with nothing to point at.',
+      '<b>Check:</b> without it, the four still read as one paragraph.',
+    ] },
+};
+function strategyKey(q) {
+  const inPJ = q.ch === 'c17';
+  if (!inPJ && !(chapter(q.ch).section === 'PAPERS' && q.sec === 'VARC')) return null;
+  const d = q.dir && S.data.directions[q.dir];
+  const t = (q.text || '') + ' ' + ((d && d.text) || '');
+  if (/odd sentence/i.test(t)) return 'pj-odd';
+  const order = /properly sequenced|proper sequenc|proper order for the sentences/i.test(t);
+  if (!inPJ) return order ? 'pj' : null;
+  if (/parts of a sentence/i.test(t)) return 'pj-parts';
+  if (/between sentences?\s*(numbered\s*)?1|1 (and|to) 6|is in its correct place/i.test(t)) return 'pj-fixed';
+  return 'pj';
+}
+const strategyQ = () => activeQ() || (S.unit && (S.unit.qs.find(x => !attempt(x.id)) || S.unit.qs[0])) || null;
+let stratTimer = 0;
+function placeStrategy() {
+  const pop = $('#strat-pop'); if (pop.hidden) return;
+  if (window.matchMedia('(max-width: 860px)').matches) { pop.style.bottom = ''; pop.style.removeProperty('--ax'); return; }
+  const d = $('#dock').getBoundingClientRect(), b = $('#strat').getBoundingClientRect();
+  pop.style.bottom = Math.round(window.innerHeight - d.top + 14) + 'px';
+  pop.style.setProperty('--ax', Math.round(b.left + b.width / 2 - (d.left + d.width / 2)) + 'px');
+}
+function openStrategy() {
+  const q = strategyQ(), s = q && STRATEGY[strategyKey(q)]; if (!s) return;
+  const pop = $('#strat-pop'), back = $('#strat-back');
+  $('#strat-title').textContent = s.title;
+  $('#strat-body').innerHTML = `<p class="strat-lede">${s.lede}</p>${s.tip ? `<p class="strat-tip">${s.tip}</p>` : ''}
+    <ol class="strat-steps">${s.steps(q).map(x => `<li>${x}</li>`).join('')}</ol>
+    <div class="strat-lbl">${s.signals || 'Pair signals to look for'}</div>
+    <ul class="strat-sig">${PJ_SIGNALS.map(([a, b]) => `<li><b>${a}</b><span>${b}</span></li>`).join('')}</ul>`;
+  $('#strat-body').scrollTop = 0;
+  clearTimeout(stratTimer);
+  pop.hidden = false; back.hidden = false; placeStrategy();
+  void pop.offsetWidth;
+  pop.classList.add('open'); back.classList.add('open'); document.body.classList.add('strat-open');
+  $('#strat').setAttribute('aria-expanded', 'true');
+  pop.focus({ preventScroll: true });
+}
+function closeStrategy(now) {
+  const pop = $('#strat-pop'), back = $('#strat-back'); if (!pop || pop.hidden) return;
+  pop.classList.remove('open'); back.classList.remove('open'); document.body.classList.remove('strat-open');
+  $('#strat').setAttribute('aria-expanded', 'false');
+  clearTimeout(stratTimer);
+  const hide = () => { pop.hidden = true; back.hidden = true; };
+  if (now) hide(); else stratTimer = setTimeout(hide, 280);
+}
+const strategyOpen = () => $('#strat-pop').classList.contains('open');
+function toggleStrategy() { strategyOpen() ? closeStrategy() : openStrategy(); }
+function initStrategy() {
+  const btn = $('#strat'), pop = $('#strat-pop'), head = $('.strat-head');
+  btn.onclick = toggleStrategy;
+  $('#strat-close').onclick = () => closeStrategy();
+  document.addEventListener('pointerdown', e => { if (strategyOpen() && !pop.contains(e.target) && !btn.contains(e.target)) closeStrategy(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && strategyOpen()) closeStrategy(); });
+  window.addEventListener('resize', placeStrategy);
+  let y0 = null; // drag the sheet's header down to dismiss it
+  head.addEventListener('touchstart', e => { y0 = e.touches[0].clientY; pop.style.transition = 'none'; }, { passive: true });
+  head.addEventListener('touchmove', e => { if (y0 !== null) pop.style.transform = `translateY(${Math.max(0, e.touches[0].clientY - y0)}px)`; }, { passive: true });
+  const end = e => {
+    if (y0 === null) return;
+    const dy = e.changedTouches[0].clientY - y0; y0 = null;
+    pop.style.transition = ''; pop.style.transform = '';
+    if (dy > 70) closeStrategy();
+  };
+  head.addEventListener('touchend', end); head.addEventListener('touchcancel', end);
+}
+
 /* ---------- reader ---------- */
 const RD = { full: null, briefs: null, p: null };
 function loadReadingData() {
@@ -701,6 +806,7 @@ function onKey(e) {
   if (k === 'n') navUnit(1);
   if (k === 'p') navUnit(-1);
   if (k === 't') togglePanel();
+  if (k === 's') toggleStrategy();
   if (k === ' ') { e.preventDefault(); $('#pause').click(); }
 }
 
@@ -977,7 +1083,7 @@ function renderSettings() {
     <select data-theme><option value="">System</option><option value="light">Light</option><option value="dark">Dark</option></select>
     <hr>
     <label>Keyboard</label>
-    <p class="keys"><kbd>A</kbd>–<kbd>E</kbd> pick an option · <kbd>Enter</kbd> submit · <kbd>Space</kbd> pause · <kbd>N</kbd> next · <kbd>P</kbd> previous · <kbd>T</kbd> tutor</p>
+    <p class="keys"><kbd>A</kbd>–<kbd>E</kbd> pick an option · <kbd>Enter</kbd> submit · <kbd>Space</kbd> pause · <kbd>N</kbd> next · <kbd>P</kbd> previous · <kbd>T</kbd> tutor · <kbd>S</kbd> strategy</p>
   </div>`;
   $('[data-model]').value = S.settings.model;
   $('[data-theme]').value = document.documentElement.dataset.theme || '';

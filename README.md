@@ -63,3 +63,9 @@ pdftoppm -r 150 -gray -f 16 -l 88 -png "Face to Face CAT Topicwise Solved Papers
 python3 tools/drawings.py "Face to Face CAT Topicwise Solved Papers.pdf" drawings_papers.json 16 88
 python3 tools/papers.py papers.xml data/questions.json --pages pages --drawings drawings_papers.json
 ```
+
+## Private use: password and your own reading texts
+
+- **Password.** `worker.js` sits in front of the site. In the Cloudflare dashboard, open the Worker, then Settings, Variables and Secrets, and add a secret named `SITE_PASSWORD`. Any username works; only the password is checked. Until the secret exists the site stays open.
+- **Reading texts.** Put texts you have in a folder named by reading key (`1.txt`, `8b.pdf`, `13b.html`; the key is in the reader URL, `#/read/8b`) and run `python3 tools/build_private.py FOLDER`. That writes `private/readings_text.json`, which the reader shows in full. The Worker refuses `/private/` until `SITE_PASSWORD` is set, so these never go out openly.
+- **Keep the repo private** before you commit anything in `private/`.

@@ -1,9 +1,6 @@
-.git/**
-.gitignore
-.assetsignore
+worker.js
 wrangler.jsonc
-tools/**
-*.pdf
+tools
 README.md
-node_modules/**
-.wrangler/**
+.assetsignore
+.gitignore

@@ -744,7 +744,9 @@ function loadReadingData() {
   if (!RD.p) RD.p = Promise.all([
     fetch('data/readings_full.json').then(r => r.json()),
     fetch('data/readings_briefs.json').then(r => r.json()),
-  ]).then(([f, b]) => { RD.full = f; RD.briefs = b; })
+    // Private copies you add yourself (see tools/build_private.py). Served only through the password gate.
+    fetch('private/readings_text.json').then(r => r.ok ? r.json() : {}).catch(() => ({})),
+  ]).then(([f, b, p]) => { RD.full = Object.assign({}, f, p); RD.briefs = b; })
     .catch(() => { RD.p = null; RD.full = RD.full || {}; RD.briefs = RD.briefs || {}; });
   return RD.p;
 }
@@ -778,7 +780,7 @@ function renderReader(key) {
       </header>
       ${br ? `<section class="brief">${br.map((x, i) => `<div><span class="bl">${labels[i]}</span><p>${esc(x)}</p></div>`).join('')}</section>` : ''}
       ${full ? `<div class="rtext">${text}</div><p class="rsrc">${esc(full.src)} · ${esc(full.lic)}</p>`
-             : `<p class="rnofull">The full text is not reproduced here. The brief above is a summary, not the piece; the original is linked below.</p>`}
+             : `<p class="rnofull">The full text is not in this copy. The brief above is a summary, not the piece; the original is linked below.</p>`}
       <div class="rfoot">
         <button class="rdone ${reads[key] ? 'on' : ''}" type="button">${icon('tick')}<span>${reads[key] ? 'Read' : 'Mark as read'}</span></button>
         <a class="rorig" href="${url}" target="_blank" rel="noopener">Open the original${icon('link', 'lk')}</a>

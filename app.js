@@ -132,7 +132,7 @@ function route() {
   S.routeSec = (h.match(/[?&]sec=(QA|DILR|VARC)/) || [])[1] || null;
   if (m && m[1] === 'q' && !S.byId.has(m[2])) { location.hash = '#/'; return; }
   const isQ = !!(m && m[1] === 'q');
-  const navKey = h.startsWith('#/settings') ? 'settings' : h.startsWith('#/reading') ? 'reading' : m && m[1] === 'sec' ? m[2] : m ? chapter(m[1] === 'q' ? S.byId.get(m[2]).ch : m[2]).section : 'home';
+  const navKey = h.startsWith('#/settings') ? 'settings' : h.startsWith('#/reading') || h.startsWith('#/read/') ? 'reading' : m && m[1] === 'sec' ? m[2] : m ? chapter(m[1] === 'q' ? S.byId.get(m[2]).ch : m[2]).section : 'home';
   document.querySelectorAll('#nav a').forEach(a => a.classList.toggle('on', a.dataset.nav === navKey));
   document.body.classList.toggle('wide', isQ);
   document.body.classList.toggle('has-dock', isQ);
@@ -140,6 +140,7 @@ function route() {
   $('#ai-toggle').hidden = !isQ;
   if (!isQ) closePanel(true);
   if (h.startsWith('#/settings')) renderSettings();
+  else if (h.startsWith('#/read/')) renderReader(decodeURIComponent(h.slice(7)));
   else if (h.startsWith('#/reading')) renderReading();
   else if (m && m[1] === 'ch') renderChapter(m[2]);
   else if (m && m[1] === 'sec') renderSection(m[2]);
@@ -613,8 +614,8 @@ function renderReading() {
     return `<div class="row rrow ${done ? 'done' : ''} ${second ? 'second' : 'first'}">
       <button class="tickbtn" type="button" data-tick="${key}" aria-label="${done ? 'Mark unread' : 'Mark read'}" aria-pressed="${done}">${icon('tick')}</button>
       <span class="n">${second ? '' : n}</span>
-      <span class="t"><a class="rtitle" href="${url}" target="_blank" rel="noopener">${esc(title)}${icon('link', 'lk')}</a>
-        <span class="meta">${esc(author)} · ${year}${note ? ' · ' + esc(note) : ''}</span></span>
+      <span class="t"><span class="rtl"><a class="rtitle" href="#/read/${key}">${esc(title)}</a><a class="ext" href="${url}" target="_blank" rel="noopener" title="Open the original" aria-label="Open the original">${icon('link', 'lk')}</a></span>
+        <span class="meta">${esc(author)} · ${year}${note ? ' · ' + esc(note) : ''}${RD.full && RD.full[key] ? ' · full text here' : ''}</span></span>
       <span class="r">${esc(field)}</span>
     </div>`;
   };
@@ -624,11 +625,68 @@ function renderReading() {
     return rowHTML(String(n), n, item, false) + (pair ? rowHTML(n + 'b', n, pair, true) : '');
   }).join('')).join('');
   app().innerHTML = `<h1 class="with-ic"><span class="badge-ic lg">${icon('reading')}</span>Reading</h1>
-  <p class="lead rlead">Improve your reading muscle. Two pieces a day for 25 days: a classic and a modern one that answers or extends it, rising in difficulty and jumping between fields, the way CAT passages do. Read for the argument, not the facts: what is being claimed, how it is built, and where you would push back.</p>
+  <p class="lead rlead">Improve your reading muscle. Two pieces a day for 25 days: a classic and a modern one that answers or extends it, rising in difficulty and jumping between fields, the way CAT passages do. Read for the argument, not the facts: what is being claimed, how it is built, and where you would push back. Open any title for a short brief, and for the pieces that are free to copy, the full text, so you can read it here.</p>
   <div class="rows">${groups}</div>`;
   document.querySelectorAll('[data-tick]').forEach(b => b.onclick = () => {
     const n = b.dataset.tick; if (reads[n]) delete reads[n]; else reads[n] = Date.now(); save(); renderReading();
   });
+  if (!RD.full) loadReadingData().then(() => { if (location.hash.startsWith('#/reading')) renderReading(); });
+}
+
+/* ---------- reader ---------- */
+const RD = { full: null, briefs: null, p: null };
+function loadReadingData() {
+  if (!RD.p) RD.p = Promise.all([
+    fetch('data/readings_full.json').then(r => r.json()),
+    fetch('data/readings_briefs.json').then(r => r.json()),
+  ]).then(([f, b]) => { RD.full = f; RD.briefs = b; })
+    .catch(() => { RD.p = null; RD.full = RD.full || {}; RD.briefs = RD.briefs || {}; });
+  return RD.p;
+}
+function readingByKey(key) {
+  let day = 0;
+  for (const [, items] of READINGS) for (const item of items) {
+    day++;
+    const last = item[item.length - 1], pair = Array.isArray(last) ? last : null;
+    if (String(day) === key) return { day, second: false, item };
+    if (pair && day + 'b' === key) return { day, second: true, item: pair };
+  }
+  return null;
+}
+function renderReader(key) {
+  const r = readingByKey(key);
+  if (!r) { location.hash = '#/reading'; return; }
+  const reads = S.progress.reads || (S.progress.reads = {});
+  let [author, title, year, field, url, note] = r.item;
+  if (Array.isArray(note)) note = null;
+  const draw = () => {
+    const full = RD.full && RD.full[key], br = RD.briefs && RD.briefs[key];
+    const text = full ? full.blocks.map(([t, x]) =>
+      t === 'h' ? `<h2>${esc(x)}</h2>` : t === 'q' ? `<blockquote>${esc(x)}</blockquote>` : t === 'n' ? `<p class="rnote">${esc(x)}</p>` : `<p>${esc(x)}</p>`).join('') : '';
+    const labels = ['The argument', 'How it is built', 'Where to push back'];
+    app().innerHTML = `<div class="rmeta">${backBtn('#/reading', 'Reading')}</div>
+    <article class="reader">
+      <header>
+        <div class="rday">Day ${r.day} · ${r.second ? 'modern' : 'classic'}</div>
+        <h1>${esc(title)}</h1>
+        <p class="rby">${esc(author)} · ${year} · ${esc(field)}${note ? ' · ' + esc(note) : ''}</p>
+      </header>
+      ${br ? `<section class="brief">${br.map((x, i) => `<div><span class="bl">${labels[i]}</span><p>${esc(x)}</p></div>`).join('')}</section>` : ''}
+      ${full ? `<div class="rtext">${text}</div><p class="rsrc">${esc(full.src)} · ${esc(full.lic)}</p>`
+             : `<p class="rnofull">The full text is not reproduced here. The brief above is a summary, not the piece; the original is linked below.</p>`}
+      <div class="rfoot">
+        <button class="rdone ${reads[key] ? 'on' : ''}" type="button">${icon('tick')}<span>${reads[key] ? 'Read' : 'Mark as read'}</span></button>
+        <a class="rorig" href="${url}" target="_blank" rel="noopener">Open the original${icon('link', 'lk')}</a>
+      </div>
+    </article>`;
+    const btn = $('.rdone');
+    btn.onclick = () => {
+      if (reads[key]) delete reads[key]; else reads[key] = Date.now();
+      save(); btn.classList.toggle('on', !!reads[key]); btn.querySelector('span').textContent = reads[key] ? 'Read' : 'Mark as read';
+    };
+  };
+  draw();
+  if (!RD.full) loadReadingData().then(() => { if (decodeURIComponent(location.hash.slice(7)) === key) { const y = window.scrollY; draw(); window.scrollTo(0, y); } });
 }
 
 /* ---------- keyboard ---------- */

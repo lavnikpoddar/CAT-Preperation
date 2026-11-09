@@ -418,9 +418,12 @@ h1.with-ic { display: flex; align-items: center; gap: 14px; }
 .rlead { max-width: 560px; margin: 10px 0 22px; line-height: 1.6; }
 .rrow { grid-template-columns: 28px 28px 1fr auto; gap: 12px; cursor: default; }
 .rrow .t { display: flex; flex-direction: column; gap: 2px; }
-.rtitle { display: inline-flex; align-items: center; gap: 6px; }
-.rtitle .lk { width: 13px; height: 13px; opacity: 0; transition: opacity .15s; }
-.rrow:hover .rtitle .lk { opacity: .6; }
+.rtl { display: inline-flex; align-items: center; gap: 8px; }
+.rtitle:hover { text-decoration: underline; text-underline-offset: 3px; }
+.ext { display: inline-grid; place-items: center; color: var(--muted); }
+.ext .lk { width: 13px; height: 13px; opacity: 0; transition: opacity .15s; }
+.rrow:hover .ext .lk, .ext:focus-visible .lk { opacity: .7; }
+.ext:hover .lk { opacity: 1; }
 .rrow.done .rtitle { color: var(--muted); }
 .rrow.first { border-bottom: 0; padding-bottom: 6px; }
 .rrow.second { padding-top: 6px; }
@@ -429,3 +432,37 @@ h1.with-ic { display: flex; align-items: center; gap: 14px; }
 .tickbtn:hover { border-color: color-mix(in srgb, var(--fg) 35%, var(--line)); color: var(--muted); }
 .rrow.done .tickbtn { background: var(--fg); border-color: var(--fg); color: var(--card); }
 .rowhead:first-child { padding-top: 6px; }
+
+/* ---------- reader ---------- */
+.rmeta { max-width: 720px; margin: 0 auto; }
+.rmeta .backbtn { margin-bottom: 18px; }
+.reader { max-width: 720px; margin: 0 auto; }
+.rday { font-size: 12px; color: var(--muted); letter-spacing: .06em; text-transform: uppercase; margin-bottom: 8px; }
+.reader h1 { font-size: 30px; line-height: 1.2; }
+.rby { color: var(--muted); font-size: 14px; margin: 8px 0 24px; }
+.brief { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 6px 22px; margin-bottom: 30px; }
+.brief > div { padding: 14px 0; border-bottom: 1px solid var(--line); }
+.brief > div:last-child { border-bottom: 0; }
+.brief .bl { display: block; font-size: 12px; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; margin-bottom: 6px; }
+.brief p { margin: 0; font-size: 15px; line-height: 1.65; }
+.rtext { font-size: 17px; line-height: 1.8; }
+.rtext p { margin: 0 0 1.1em; }
+.rtext h2 { font-size: 19px; font-weight: 600; margin: 1.8em 0 .7em; line-height: 1.3; }
+.rtext blockquote { margin: 0 0 1.1em; padding: 0 0 0 18px; border-left: 2px solid var(--line); color: color-mix(in srgb, var(--fg) 75%, var(--muted)); font-size: 15.5px; line-height: 1.7; }
+.rtext .rnote, .rnote { color: var(--muted); font-size: 13px; font-style: italic; }
+.rsrc { color: var(--muted); font-size: 12.5px; margin: 28px 0 0; }
+.rnofull { color: var(--muted); font-size: 14px; line-height: 1.6; margin: 0; }
+.rfoot { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 36px; padding-top: 20px; border-top: 1px solid var(--line); }
+.rdone { display: inline-flex; align-items: center; gap: 8px; padding: 9px 16px; border-radius: 999px; border: 1px solid var(--line); background: var(--card); color: var(--fg); font: inherit; font-size: 14px; cursor: pointer; transition: background .15s, border-color .15s; }
+.rdone .ic { width: 15px; height: 15px; stroke-width: 2.2; opacity: .45; }
+.rdone:hover { border-color: color-mix(in srgb, var(--fg) 35%, var(--line)); }
+.rdone.on { background: var(--fg); border-color: var(--fg); color: var(--card); }
+.rdone.on .ic { opacity: 1; }
+.rorig { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 13px; }
+.rorig .lk { width: 13px; height: 13px; }
+.rorig:hover { color: var(--fg); }
+@media (max-width: 640px) {
+  .reader h1 { font-size: 24px; }
+  .rtext { font-size: 16.5px; }
+  .brief { padding: 4px 16px; }
+}

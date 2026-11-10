@@ -63,7 +63,8 @@ body.ai-open { padding-right: var(--panel-w); }
 .backbtn:hover { color: var(--fg); }
 .backbtn:hover .bb { border-color: color-mix(in srgb, var(--fg) 30%, var(--line)); background: var(--soft); }
 .umeta .backbtn { margin: 0; }
-.note-dir { font-size: 14px; color: var(--muted); margin: -6px 0 14px; max-width: 760px; }
+.note-dir { font-size: 14px; color: var(--muted); margin: -6px auto 14px; max-width: 880px; }
+.erratum { font-size: 13px; color: var(--muted); margin: 4px 0 12px; padding: 8px 12px; border-left: 2px solid var(--warn); background: var(--soft); border-radius: 0 8px 8px 0; }
 .note-dir .crop { max-width: 560px; }
 .lead { color: var(--muted); font-size: 14px; margin-top: 4px; }
 

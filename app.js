@@ -349,6 +349,7 @@ function qblockHTML(q) {
   return `<div class="qblock ${a ? 'done' : ''}" id="qb-${q.id}" data-q="${q.id}">
     <div class="qhead"><span>Q${q.n}${tx ? ' <a class="orig" data-orig="' + q.id + '">original</a>' : ''}</span><span><span class="qt" id="qt-${q.id}">${a ? fmtTime(a.time) : ''}</span> <a class="bm" data-bm="${q.id}">${S.progress.bookmarks[q.id] ? '★' : '☆'}</a></span></div>
     <div class="stem">${tx ? parasHTML(tx.stem) : crops(stemRects, 1.6)}</div>
+    ${q.fix ? `<p class="erratum">${esc(q.fix)}</p>` : ''}
     <div class="answer" id="ans-${q.id}">${answerHTML(q, a)}</div>
     <div id="after-${q.id}">${a ? afterHTML(q, a) : ''}</div>
   </div>`;

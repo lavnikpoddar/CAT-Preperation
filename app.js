@@ -745,6 +745,19 @@ function initStrategy() {
 /* ---------- notes: things to remember, written up from lesson screenshots ---------- */
 const NOTES = [
   ['Number system', [
+    ['Recurring decimals as fractions', `
+      <p>Every recurring decimal is <b>rational</b>: it can be written as p/q. Put the repeating block over as many 9s as it has digits.</p>
+      <table class="ntab nform">
+        <tr><th>0.aaa…</th><td>a / 9, e.g. 0.777… = 7/9</td></tr>
+        <tr><th>0.abab…</th><td>ab / 99, e.g. 0.2323… = 23/99</td></tr>
+        <tr><th>0.abcabc…</th><td>abc / 999</td></tr>
+        <tr><th>0.abcdabcd…</th><td>abcd / 9999</td></tr>
+      </table>
+      <p class="nwhy">Why: x = 0.abcabc…, so 1000x = abc.abcabc…. Subtract: 999x = abc, so x = abc/999.</p>
+      <p><b>When the repeat starts later</b> (mixed recurring), multiply so that the repeating parts line up, then subtract.</p>
+      <p class="nex"><span>Example</span>x = 0.2565656… (2, then 56 repeats). 10x = 2.565656… and 1000x = 256.5656…. Subtract: 990x = 254, so x = 254/990 = 127/495.</p>
+      <p>Shortcut for mixed recurring: numerator = (digits up to the end of the first repeat) − (digits before the repeat) = 256 − 2 = 254. Denominator = a 9 for each repeating digit, then a 0 for each non-repeating digit after the point = 990.</p>
+      <p class="ntrap"><span>Watch out</span>Reduce the fraction at the end: answer choices give 127/495, not 254/990.</p>`],
     ['Prime and composite numbers: the basics', `
       <ul>
         <li>A prime has exactly <b>two distinct factors</b>: 1 and itself. 7 has 1, 7. 10 has 1, 2, 5, 10, so it is not prime.</li>

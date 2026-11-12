@@ -764,31 +764,39 @@ const FIGS = {
   },
   squares30: () => `<div class="sqgrid" aria-label="Squares of 1 to 30">${Array.from({ length: 30 }, (_, i) => i + 1)
     .map(n => `<span class="${n % 5 === 0 ? 'k' : ''}"><i>${n}</i>${n * n}</span>`).join('')}</div>`,
+  divis: () => `<div class="dvgrid">${[
+      ['2', 'last digit even'], ['3', 'digit sum ÷ 3'], ['4', 'last 2 digits ÷ 4'], ['5', 'ends in 0 or 5'],
+      ['6', '÷ 2 and ÷ 3'], ['7', 'rest − 2 × last digit'], ['8', 'last 3 digits ÷ 8'], ['9', 'digit sum ÷ 9'],
+      ['10', 'ends in 0'], ['11', 'alternating digit sum'],
+    ].map(([d, r]) => `<span><b>${d}</b>${r}</span>`).join('')}</div>`,
   sixk: () => `<div class="sixk">${[1, 2, 3, 4, 5, 6].map(r => `<span class="${r === 1 || r === 5 ? 'on' : ''}"><b>6k${r === 6 ? '' : ' + ' + r}</b>${r === 1 || r === 5 ? 'primes live here' : r === 6 ? '÷ 6' : r === 3 ? '÷ 3' : '÷ 2'}</span>`).join('')}</div>`,
 };
 const NOTES = [
   ['Number system', [
-    { title: 'Recurring decimals', tone: 'ink', wp: true, stack: [
-        [`0.<span class="ol">a</span> = ${fr('a', '9')}`, 'one digit repeats'],
-        [`0.<span class="ol">ab</span> = ${fr('ab', '99')}`, 'two repeat'],
-        [`0.<span class="ol">abc</span> = ${fr('abc', '999')}`, 'one 9 per repeating digit'],
-        [`0.2<span class="ol">56</span> = ${fr('256 − 2', '990')}`, 'repeat starts late'],
-      ], body: `
-      <p><b>Pure:</b> the repeating block over as many 9s as it has digits. 0.777… = 7/9, 0.2323… = 23/99.</p>
-      <p class="nwhy">Why: x = 0.abcabc…, so 1000x = abc.abcabc…. Subtract: 999x = abc.</p>
-      <p><b>Mixed:</b> top = digits up to the end of the first repeat, minus the digits before the repeat. Bottom = a 9 for each repeating digit, then a 0 for each non-repeating digit after the point.</p>
-      <p class="nex"><span>Long way</span>x = 0.25656…, 10x = 2.5656…, 1000x = 256.5656…. Subtract: 990x = 254, so x = 254/990 = 127/495.</p>
-      <p class="ntrap"><span>Watch out</span>Reduce at the end: the options will say 127/495, not 254/990.</p>
-      <p>Every recurring decimal is rational: it can be written as p/q.</p>` },
+    { title: 'Is it prime?', tone: 'ink', wp: true, stack: [
+        ['p ≤ √N', 'divide only by primes up to √N'],
+        ['6k ± 1', 'every prime above 3 has this form'],
+        ['p² − 1 = 24k', 'for every prime above 3'],
+        ['≠ 3, 6, 9', 'its digital sum, except for 3 itself'],
+      ], fig: 'sixk', body: `
+      <p>The last three are quick filters: if a number fails one, it is not prime. Only <b>√N</b> proves a number prime.</p>
+      <p class="nex"><span>Filters are not proof</span>91 = 6 × 15 + 1, its digital sum is 1 and 91² − 1 = 24 × 345, yet 91 = 7 × 13.</p>
+      <p><b>√N:</b> a factor above √N would need a partner below √N, which you have already tried. 143: √143 ≈ 11.96, try 2, 3, 5, 7, 11, and 143 = 11 × 13. 731: √731 ≈ 27.04, try primes up to 23, and 731 = 17 × 43.</p>
+      <p><b>6k ± 1:</b> divided by 6, a prime above 3 leaves 1 or 5. Remainders 0, 2 and 4 make it even, 3 makes it a multiple of 3. The reverse is false: 25 = 6 × 4 + 1 = 5 × 5.</p>
+      <p><b>24k:</b> 5² − 1 = 24, 7² − 1 = 48. <span class="nwhy">(p − 1)(p + 1) are consecutive even numbers, one a multiple of 4, so the product is a multiple of 8; one of p − 1, p, p + 1 is a multiple of 3, and it is not p.</span></p>
+      <p><b>Digital sum:</b> add the digits until one is left, 949876 → 43 → 7. A digital sum of 3, 6 or 9 means divisible by 3.</p>
+      <p class="ntrap"><span>Watch out</span>It is ≤ √N, not &lt; √N: 121 = 11 × 11. And 2 and 3 fail the 6k ± 1 and 24k tests but are prime.</p>` },
+    { fig: 'divis', title: 'Divisibility, 2 to 11', w: true, tone: 'ink', body: `
+      <p><b>Last digits</b> (2, 4, 5, 8, 10): look only at the end of the number. 7128: the last three digits 128 = 8 × 16, so 8 divides it. 5134: 34 is not a multiple of 4, so 4 does not.</p>
+      <p><b>Digit sums</b> (3, 9): add the digits. 123456789: the digits add to 45, so it is divisible by 9 (and 3).</p>
+      <p><b>Combinations</b> (6, and later 12, 15, 18…): split into factors that share nothing and check each. 6 = 2 × 3, 12 = 3 × 4.</p>
+      <p class="ntrap"><span>Watch out</span>The factors must be co-prime: for 12 check 3 and 4, not 2 and 6. 18 passes 2 and 6 but is not divisible by 12.</p>
+      <p><b>7:</b> double the last digit and subtract it from the rest; repeat. 343: 34 − 6 = 28 = 7 × 4, so yes.</p>
+      <p><b>11:</b> (sum of digits in odd places) − (sum in even places) must be 0 or a multiple of 11. 918082: (9 + 8 + 8) − (1 + 0 + 2) = 22, so yes.</p>
+      <p class="nex"><span>One check for 7, 11 and 13</span>1001 = 7 × 11 × 13. For a six-digit number, subtract the last three digits from the first three. 914186: 914 − 186 = 728 = 7 × 8 × 13, so it is divisible by 7 and 13 but not 11.</p>` },
     { fig: 'primes100', title: 'Primes under 100', w: true, body: `
       <p>Up to 50: <b>15</b> primes. Up to 100: <b>25</b>. Up to 200: <b>46</b>.</p>
       <p>By tens: 2, 3, 5, 7 · 11, 13, 17, 19 · 23, 29 · 31, 37 · 41, 43, 47 · 53, 59 · 61, 67 · 71, 73, 79 · 83, 89 · 97.</p>` },
-    { fig: 'squares30', title: 'Squares up to 30', wp: true, body: `
-      <p>A square only ever ends in <b>0, 1, 4, 5, 6 or 9</b>. A number ending in 2, 3, 7 or 8 is never a perfect square.</p>
-      <p><b>Ending in 5:</b> n5² = n × (n + 1), then 25. 35² = 3 × 4 = 12 → 1225. 85² = 72 → 7225.</p>
-      <p><b>Near 50:</b> (50 + a)² = 2500 + 100a + a². 53² = 2500 + 300 + 9 = 2809. 47² = 2500 − 300 + 9 = 2209.</p>
-      <p><b>Neighbours:</b> (n + 1)² = n² + 2n + 1. From 20² = 400: 21² = 400 + 41 = 441.</p>
-      <p class="nex"><span>Square roots</span>To find √N, use the last digit to narrow the root's last digit, and the square table to place it. √784: ends in 4, so the root ends in 2 or 8; 784 lies between 25² and 30², so it is 28.</p>` },
     { title: 'Sums of the first n numbers', tone: 'soft', wp: true, stack: [
         [fr('n(n + 1)', '2'), '1 + 2 + 3 + … + n'],
         [fr('n(n + 1)(2n + 1)', '6'), '1² + 2² + … + n²'],
@@ -803,19 +811,24 @@ const NOTES = [
       <p><b>Evenly spaced numbers</b> (first a, last l, n terms): n × (a + l)/2. With an odd count that is count × middle term: 33 + 35 + 37 + 39 + 41 = 5 × 37 = 185.</p>
       <p>Five consecutive odd numbers: 10k + 25 = 5(2k + 5), always an odd multiple of 5.</p>
       <p class="ntrap"><span>Watch out</span>“Five consecutive odd numbers add up to 197” cannot happen: 197 is not a multiple of 5.</p>` },
-    { title: 'Is it prime?', tone: 'ink', wp: true, stack: [
-        ['p ≤ √N', 'divide only by primes up to √N'],
-        ['6k ± 1', 'every prime above 3 has this form'],
-        ['p² − 1 = 24k', 'for every prime above 3'],
-        ['≠ 3, 6, 9', 'its digital sum, except for 3 itself'],
-      ], fig: 'sixk', body: `
-      <p>The last three are quick filters: if a number fails one, it is not prime. Only <b>√N</b> proves a number prime.</p>
-      <p class="nex"><span>Filters are not proof</span>91 = 6 × 15 + 1, its digital sum is 1 and 91² − 1 = 24 × 345, yet 91 = 7 × 13.</p>
-      <p><b>√N:</b> a factor above √N would need a partner below √N, which you have already tried. 143: √143 ≈ 11.96, try 2, 3, 5, 7, 11, and 143 = 11 × 13. 731: √731 ≈ 27.04, try primes up to 23, and 731 = 17 × 43.</p>
-      <p><b>6k ± 1:</b> divided by 6, a prime above 3 leaves 1 or 5. Remainders 0, 2 and 4 make it even, 3 makes it a multiple of 3. The reverse is false: 25 = 6 × 4 + 1 = 5 × 5.</p>
-      <p><b>24k:</b> 5² − 1 = 24, 7² − 1 = 48. <span class="nwhy">(p − 1)(p + 1) are consecutive even numbers, one a multiple of 4, so the product is a multiple of 8; one of p − 1, p, p + 1 is a multiple of 3, and it is not p.</span></p>
-      <p><b>Digital sum:</b> add the digits until one is left, 949876 → 43 → 7. A digital sum of 3, 6 or 9 means divisible by 3.</p>
-      <p class="ntrap"><span>Watch out</span>It is ≤ √N, not &lt; √N: 121 = 11 × 11. And 2 and 3 fail the 6k ± 1 and 24k tests but are prime.</p>` },
+    { title: 'Recurring decimals', tone: 'ink', wp: true, stack: [
+        [`0.<span class="ol">a</span> = ${fr('a', '9')}`, 'one digit repeats'],
+        [`0.<span class="ol">ab</span> = ${fr('ab', '99')}`, 'two repeat'],
+        [`0.<span class="ol">abc</span> = ${fr('abc', '999')}`, 'one 9 per repeating digit'],
+        [`0.2<span class="ol">56</span> = ${fr('256 − 2', '990')}`, 'repeat starts late'],
+      ], body: `
+      <p><b>Pure:</b> the repeating block over as many 9s as it has digits. 0.777… = 7/9, 0.2323… = 23/99.</p>
+      <p class="nwhy">Why: x = 0.abcabc…, so 1000x = abc.abcabc…. Subtract: 999x = abc.</p>
+      <p><b>Mixed:</b> top = digits up to the end of the first repeat, minus the digits before the repeat. Bottom = a 9 for each repeating digit, then a 0 for each non-repeating digit after the point.</p>
+      <p class="nex"><span>Long way</span>x = 0.25656…, 10x = 2.5656…, 1000x = 256.5656…. Subtract: 990x = 254, so x = 254/990 = 127/495.</p>
+      <p class="ntrap"><span>Watch out</span>Reduce at the end: the options will say 127/495, not 254/990.</p>
+      <p>Every recurring decimal is rational: it can be written as p/q.</p>` },
+    { fig: 'squares30', title: 'Squares up to 30', wp: true, body: `
+      <p>A square only ever ends in <b>0, 1, 4, 5, 6 or 9</b>. A number ending in 2, 3, 7 or 8 is never a perfect square.</p>
+      <p><b>Ending in 5:</b> n5² = n × (n + 1), then 25. 35² = 3 × 4 = 12 → 1225. 85² = 72 → 7225.</p>
+      <p><b>Near 50:</b> (50 + a)² = 2500 + 100a + a². 53² = 2500 + 300 + 9 = 2809. 47² = 2500 − 300 + 9 = 2209.</p>
+      <p><b>Neighbours:</b> (n + 1)² = n² + 2n + 1. From 20² = 400: 21² = 400 + 41 = 441.</p>
+      <p class="nex"><span>Square roots</span>To find √N, use the last digit to narrow the root's last digit, and the square table to place it. √784: ends in 4, so the root ends in 2 or 8; 784 lies between 25² and 30², so it is 28.</p>` },
     { hero: '2 factors', title: 'What a prime is', tone: 'soft', hs: 'l', wp: true, body: `
       <p>Exactly two distinct factors: 1 and itself. 7 has 1, 7. 10 has 1, 2, 5, 10, so it is not prime.</p>
       <p><b>2</b> is the only even prime: every other even number also has 2 as a factor.</p>

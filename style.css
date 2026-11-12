@@ -595,6 +595,9 @@ body.notes main { max-width: 1180px; }
 .sqgrid span i { font-style: normal; font-family: Manrope, sans-serif; font-size: 10px; opacity: .5; }
 .sqgrid span.k { background: var(--fg); color: var(--card); }
 .sqgrid span.k i { opacity: .7; }
+.dvgrid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; margin: 2px 0 18px; }
+.dvgrid span { display: flex; flex-direction: column; gap: 6px; padding: 10px 10px 11px; border-radius: 10px; background: color-mix(in srgb, currentColor 9%, transparent); font-size: 11.5px; line-height: 1.3; opacity: .92; }
+.dvgrid b { font-family: 'Source Serif 4', Georgia, serif; font-weight: 400; font-size: min(40px, 7.4cqi); line-height: 1; }
 /* figures */
 .pgrid { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 2px; margin: 2px 0 16px; font-size: max(10px, min(15px, 2.6cqi)); font-variant-numeric: tabular-nums; }
 .pgrid span { aspect-ratio: 1; display: grid; place-items: center; border-radius: 4px; color: color-mix(in srgb, var(--fg) 32%, transparent); }
@@ -611,6 +614,8 @@ body.notes main { max-width: 1180px; }
   .ngrid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
   .nb.w, .nb.wp { grid-column: span 2; }
   .sqgrid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .dvgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .dvgrid b { font-size: 30px; }
   .sqgrid span { font-size: min(19px, 5.4cqi); }
   .nin { padding: 16px 14px 13px; border-radius: 14px; }
   .nhero { margin: 2px 0 12px; }

@@ -762,62 +762,63 @@ const FIGS = {
     return `<svg class="ofig" viewBox="0 0 ${w} ${w}" width="${w}" height="${w}" aria-label="1 + 3 + 5 + 7 + 9 dots form a 5 by 5 square">${dots}</svg>
       <div class="ofcap">1 + 3 + 5 + 7 + 9 = 5²</div>`;
   },
+  squares30: () => `<div class="sqgrid" aria-label="Squares of 1 to 30">${Array.from({ length: 30 }, (_, i) => i + 1)
+    .map(n => `<span class="${n % 5 === 0 ? 'k' : ''}"><i>${n}</i>${n * n}</span>`).join('')}</div>`,
   sixk: () => `<div class="sixk">${[1, 2, 3, 4, 5, 6].map(r => `<span class="${r === 1 || r === 5 ? 'on' : ''}"><b>6k${r === 6 ? '' : ' + ' + r}</b>${r === 1 || r === 5 ? 'primes live here' : r === 6 ? '÷ 6' : r === 3 ? '÷ 3' : '÷ 2'}</span>`).join('')}</div>`,
 };
 const NOTES = [
   ['Number system', [
-    { hero: `0.<span class="ol">a</span> = ${fr('a', '9')}`, title: 'Pure recurring decimal', tone: 'ink', hs: 'xl', body: `
-      <p>Put the repeating block over as many 9s as it has digits.</p>
-      <table class="ntab nform">
-        <tr><th>0.777…</th><td>7/9</td></tr>
-        <tr><th>0.2323…</th><td>23/99</td></tr>
-        <tr><th>0.abcabc…</th><td>abc/999</td></tr>
-        <tr><th>0.abcdabcd…</th><td>abcd/9999</td></tr>
-      </table>
+    { title: 'Recurring decimals', tone: 'ink', wp: true, stack: [
+        [`0.<span class="ol">a</span> = ${fr('a', '9')}`, 'one digit repeats'],
+        [`0.<span class="ol">ab</span> = ${fr('ab', '99')}`, 'two repeat'],
+        [`0.<span class="ol">abc</span> = ${fr('abc', '999')}`, 'one 9 per repeating digit'],
+        [`0.2<span class="ol">56</span> = ${fr('256 − 2', '990')}`, 'repeat starts late'],
+      ], body: `
+      <p><b>Pure:</b> the repeating block over as many 9s as it has digits. 0.777… = 7/9, 0.2323… = 23/99.</p>
       <p class="nwhy">Why: x = 0.abcabc…, so 1000x = abc.abcabc…. Subtract: 999x = abc.</p>
-      <p>Every recurring decimal is rational: it can be written as p/q.</p>` },
-    { hero: `0.2<span class="ol">56</span> = ${fr('256 − 2', '990')}`, title: 'Mixed recurring decimal', hs: 'm', body: `
-      <p>Top: all the digits up to the end of the first repeat, minus the digits before the repeat. Bottom: a 9 for each repeating digit, then a 0 for each non-repeating digit after the point.</p>
+      <p><b>Mixed:</b> top = digits up to the end of the first repeat, minus the digits before the repeat. Bottom = a 9 for each repeating digit, then a 0 for each non-repeating digit after the point.</p>
       <p class="nex"><span>Long way</span>x = 0.25656…, 10x = 2.5656…, 1000x = 256.5656…. Subtract: 990x = 254, so x = 254/990 = 127/495.</p>
-      <p class="ntrap"><span>Watch out</span>Reduce at the end. The options will say 127/495, not 254/990.</p>` },
-    { hero: '2 factors', title: 'What a prime is', tone: 'soft', hs: 'l', body: `
+      <p class="ntrap"><span>Watch out</span>Reduce at the end: the options will say 127/495, not 254/990.</p>
+      <p>Every recurring decimal is rational: it can be written as p/q.</p>` },
+    { title: 'Is it prime?', tone: 'ink', wp: true, stack: [
+        ['p ≤ √N', 'divide only by primes up to √N'],
+        ['6k ± 1', 'every prime above 3 has this form'],
+        ['p² − 1 = 24k', 'for every prime above 3'],
+        ['≠ 3, 6, 9', 'its digital sum, except for 3 itself'],
+      ], fig: 'sixk', body: `
+      <p>The last three are quick filters: if a number fails one, it is not prime. Only <b>√N</b> proves a number prime.</p>
+      <p class="nex"><span>Filters are not proof</span>91 = 6 × 15 + 1, its digital sum is 1 and 91² − 1 = 24 × 345, yet 91 = 7 × 13.</p>
+      <p><b>√N:</b> a factor above √N would need a partner below √N, which you have already tried. 143: √143 ≈ 11.96, try 2, 3, 5, 7, 11, and 143 = 11 × 13. 731: √731 ≈ 27.04, try primes up to 23, and 731 = 17 × 43.</p>
+      <p><b>6k ± 1:</b> divided by 6, a prime above 3 leaves 1 or 5. Remainders 0, 2 and 4 make it even, 3 makes it a multiple of 3. The reverse is false: 25 = 6 × 4 + 1 = 5 × 5.</p>
+      <p><b>24k:</b> 5² − 1 = 24, 7² − 1 = 48. <span class="nwhy">(p − 1)(p + 1) are consecutive even numbers, one a multiple of 4, so the product is a multiple of 8; one of p − 1, p, p + 1 is a multiple of 3, and it is not p.</span></p>
+      <p><b>Digital sum:</b> add the digits until one is left, 949876 → 43 → 7. A digital sum of 3, 6 or 9 means divisible by 3.</p>
+      <p class="ntrap"><span>Watch out</span>It is ≤ √N, not &lt; √N: 121 = 11 × 11. And 2 and 3 fail the 6k ± 1 and 24k tests but are prime.</p>` },
+    { hero: '2 factors', title: 'What a prime is', tone: 'soft', hs: 'l', wp: true, body: `
       <p>Exactly two distinct factors: 1 and itself. 7 has 1, 7. 10 has 1, 2, 5, 10, so it is not prime.</p>
+      <p><b>2</b> is the only even prime: every other even number also has 2 as a factor.</p>
       <p>A <b>composite</b> has 3 or more factors (9: 1, 3, 9). The smallest composite is 4.</p>
       <p><b>1</b> is neither prime nor composite. Every natural number above 1 is one or the other.</p>` },
-    { hero: '2', title: 'The only even prime', hs: 'xl', body: `<p>Every other even number has 2 as a factor, so it has at least three factors.</p>` },
     { fig: 'primes100', title: 'Primes under 100', wp: true, body: `
       <p>Up to 50: <b>15</b> primes. Up to 100: <b>25</b>. Up to 200: <b>46</b>.</p>
       <p>By tens: 2, 3, 5, 7 · 11, 13, 17, 19 · 23, 29 · 31, 37 · 41, 43, 47 · 53, 59 · 61, 67 · 71, 73, 79 · 83, 89 · 97.</p>` },
-    { hero: '15 · 25 · 46', title: 'Primes up to 50 · 100 · 200', tone: 'soft', hs: 'm', body: `<p>Handy for counting questions and for a sanity check on lists.</p>` },
-    { hero: 'p ≤ √N', title: 'Is N prime? Divide only up to √N', tone: 'ink', hs: 'xl', body: `
-      <p>If no prime up to √N divides N, N is prime. A factor above √N would need a partner below √N, which you have already tried.</p>
-      <p class="nex"><span>Example</span>143: √143 ≈ 11.96, try 2, 3, 5, 7, 11. 143 = 11 × 13.</p>
-      <p class="nex"><span>Example</span>731: √731 ≈ 27.04, try primes up to 23. 731 = 17 × 43.</p>
-      <p class="ntrap"><span>Watch out</span>≤, not &lt;. For 121, √121 = 11, and 11 is the factor.</p>` },
-    { hero: '6k ± 1', title: 'Every prime above 3', hs: 'xl', fig: 'sixk', body: `
-      <p>Divided by 6, a prime above 3 leaves remainder 1 or 5. The other remainders are ruled out: 0, 2 and 4 make it even, 3 makes it a multiple of 3.</p>
-      <p class="ntrap"><span>Watch out</span>The reverse is false: 25 = 6 × 4 + 1 = 5 × 5. Use it to rule numbers out, never to prove one prime.</p>` },
-    { hero: 'p² − 1 = 24k', title: 'For every prime above 3', tone: 'soft', hs: 'm', body: `
-      <p>5² − 1 = 24, 7² − 1 = 48, 11² − 1 = 120.</p>
-      <p class="nwhy">Why: (p − 1)(p + 1) are two consecutive even numbers, one a multiple of 4, so the product is a multiple of 8. One of p − 1, p, p + 1 is a multiple of 3, and it is not p.</p>
-      <p class="ntrap"><span>Watch out</span>Fails for 2 and 3: 3² − 1 = 8.</p>` },
-    { hero: '≠ 3, 6, 9', title: 'Digital sum of a prime', hs: 'l', body: `
-      <p>A digital sum of 3, 6 or 9 means the number is divisible by 3. The only exception is 3 itself.</p>
-      <p class="nex"><span>Digital sum</span>Add the digits until one is left. 949876 → 43 → 7.</p>` },
-    { hero: `6k±1 → <i>ds</i> → 24k → √N`, title: 'Prime or not? Four checks, in order', tone: 'ink', hs: 's', w: true, body: `
-      <p>The first three can only rule a number out. Only the last proves it prime.</p>
-      <p class="nex"><span>Example</span>91 = 6 × 15 + 1, digital sum 1, 91² − 1 = 24 × 345: it passes all three filters, yet 91 = 7 × 13. Only √N catches it.</p>
-      <p class="ntrap"><span>Watch out</span>2 and 3 fail the first and third checks and are still prime.</p>` },
-    { hero: fr('n(n + 1)', '2'), title: '1 + 2 + 3 + … + n', hs: 'l', body: `<p>Sum of the first n natural numbers. Everything below builds on it.</p>` },
-    { hero: fr('n(n + 1)(2n + 1)', '6'), title: 'Sum of squares, 1² + 2² + … + n²', tone: 'soft', hs: 'm', body: `<p>For n = 10: 10 × 11 × 21 / 6 = 385.</p>` },
-    { hero: `[ ${fr('n(n + 1)', '2')} ]²`, title: 'Sum of cubes, 1³ + 2³ + … + n³', hs: 'm', body: `<p>Just the square of the plain sum. For n = 10: 55² = 3025.</p>` },
-    { hero: 'n²', title: '1 + 3 + 5 + … + (2n − 1)', tone: 'ink', hs: 'xl', fig: 'oddSquare', body: `
-      <p>The first n odd numbers always add up to a square.</p>
-      <p>Count the terms first: the n-th odd number is 2n − 1.</p>
-      <p class="nex"><span>Example</span>1 + 3 + … + 91: 2k − 1 = 91, so k = 46 and the sum is 46² = 2116.</p>` },
-    { hero: 'n(n + 1)', title: '2 + 4 + 6 + … + 2n', hs: 'l', body: `<p>Twice the plain sum: 2 × n(n + 1)/2 = n² + n. The n-th even number is 2n.</p>` },
-    { hero: 'count × middle', title: 'Sum of evenly spaced numbers', tone: 'soft', hs: 'm', body: `
-      <p>For an odd count: 33 + 35 + 37 + 39 + 41 = 5 × 37 = 185.</p>
+    { fig: 'squares30', title: 'Squares up to 30', wp: true, body: `
+      <p>A square only ever ends in <b>0, 1, 4, 5, 6 or 9</b>. A number ending in 2, 3, 7 or 8 is never a perfect square.</p>
+      <p><b>Ending in 5:</b> n5² = n × (n + 1), then 25. 35² = 3 × 4 = 12 → 1225. 85² = 72 → 7225.</p>
+      <p><b>Near 50:</b> (50 + a)² = 2500 + 100a + a². 53² = 2500 + 300 + 9 = 2809. 47² = 2500 − 300 + 9 = 2209.</p>
+      <p><b>Neighbours:</b> (n + 1)² = n² + 2n + 1. From 20² = 400: 21² = 400 + 41 = 441.</p>
+      <p class="nex"><span>Square roots</span>To find √N, use the last digit to narrow the root's last digit, and the square table to place it. √784: ends in 4, so the root ends in 2 or 8; 784 lies between 25² and 30², so it is 28.</p>` },
+    { title: 'Sums of the first n numbers', tone: 'soft', wp: true, stack: [
+        [fr('n(n + 1)', '2'), '1 + 2 + 3 + … + n'],
+        [fr('n(n + 1)(2n + 1)', '6'), '1² + 2² + … + n²'],
+        [`[ ${fr('n(n + 1)', '2')} ]²`, '1³ + 2³ + … + n³, the first sum squared'],
+        ['n²', '1 + 3 + 5 + … + (2n − 1), odd numbers'],
+        ['n(n + 1)', '2 + 4 + … + 2n, even numbers'],
+        [`${fr('n(a + l)', '2')}`, 'a + … + l, evenly spaced: count × middle'],
+      ], fig: 'oddSquare', body: `
+      <p><b>Count the terms first.</b> The n-th odd number is 2n − 1, the n-th even number is 2n.</p>
+      <p class="nex"><span>Example</span>1 + 3 + … + 91: 2k − 1 = 91, so k = 46 and the sum is 46² = 2116.</p>
+      <p class="nex"><span>Example</span>For n = 10: 1 + … + 10 = 55, the squares give 385, the cubes give 55² = 3025.</p>
+      <p><b>Evenly spaced numbers</b> (first a, last l, n terms): n × (a + l)/2. With an odd count that is count × middle term: 33 + 35 + 37 + 39 + 41 = 5 × 37 = 185.</p>
       <p>Five consecutive odd numbers: 10k + 25 = 5(2k + 5), always an odd multiple of 5.</p>
       <p class="ntrap"><span>Watch out</span>“Five consecutive odd numbers add up to 197” cannot happen: 197 is not a multiple of 5.</p>` },
   ]],
@@ -826,15 +827,16 @@ function renderNotes() {
   const card = c => `<div class="nb ${c.w ? 'w' : ''} ${c.wp ? 'wp' : ''} ${c.tone || ''}"><details class="nin">
       <summary>
         ${c.hero ? `<div class="nhero ${c.hs || 'l'}">${c.hero}</div>` : ''}
-        ${c.fig && !c.hero ? FIGS[c.fig]() : ''}
+        ${c.stack ? `<div class="nstack">${c.stack.map(([f, l]) => `<div><span class="nsf">${f}</span><span class="nsl">${esc(l)}</span></div>`).join('')}</div>` : ''}
+        ${c.fig && !c.hero && !c.stack ? FIGS[c.fig]() : ''}
         <div class="ntitle">${esc(c.title)}<span class="nplus" aria-hidden="true"></span></div>
       </summary>
-      <div class="nbody">${c.fig && c.hero ? `<div class="nfig">${FIGS[c.fig]()}</div>` : ''}${c.body}</div>
+      <div class="nbody">${c.fig && (c.hero || c.stack) ? `<div class="nfig">${FIGS[c.fig]()}</div>` : ''}${c.body}</div>
     </details></div>`;
   app().innerHTML = `<header class="nhead">
       <div class="nkick">Notes</div>
       <h1>Things to remember</h1>
-      <p>One idea per card. Tap a card for the why, an example and the trap.</p>
+      <p>Related tools stacked on one card. Tap a card for the why, an example and the trap.</p>
     </header>
     ${NOTES.map(([topic, cards], i) => `<section class="nsec">
       <div class="nsech"><span>${String(i + 1).padStart(2, '0')}</span>${esc(topic)}</div>

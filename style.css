@@ -560,7 +560,7 @@ body.notes main { max-width: 1180px; }
 .nhero.m { font-size: min(34px, 12.5cqi); }
 .nhero.s { font-size: min(28px, 8.6cqi); }
 .nhero i { font-style: italic; }
-.nhero .ol { text-decoration: overline; text-decoration-thickness: 2px; }
+.ol { text-decoration: overline; text-decoration-thickness: 2px; }
 .fr { display: inline-flex; flex-direction: column; align-items: center; vertical-align: middle; font-size: .78em; line-height: 1.12; }
 .fr > span:first-child { border-bottom: 2px solid currentColor; padding: 0 .12em .06em; }
 .fr > span:last-child { padding-top: .06em; }
@@ -583,6 +583,18 @@ body.notes main { max-width: 1180px; }
 .ntab th, .ntab td { text-align: left; padding: 5px 10px 5px 0; border-top: 1px solid color-mix(in srgb, currentColor 14%, transparent); }
 .ntab th { font-weight: 500; }
 .ntab td { opacity: .7; }
+/* stacked formulas: several related tools in one card, formula big, what it is for small beneath */
+.nstack { margin: 2px 0 18px; }
+.nstack > div { display: flex; flex-direction: column; gap: 3px; padding: 12px 0; border-bottom: 1px solid color-mix(in srgb, currentColor 14%, transparent); }
+.nstack > div:first-child { padding-top: 0; }
+.nstack > div:last-child { border-bottom: 0; padding-bottom: 0; }
+.nsf { font-family: 'Source Serif 4', Georgia, serif; font-size: min(34px, 13cqi); line-height: 1.15; letter-spacing: -.01em; white-space: nowrap; }
+.nsl { font-size: 12.5px; opacity: .6; }
+.sqgrid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 3px; margin: 2px 0 18px; }
+.sqgrid span { display: flex; flex-direction: column; justify-content: space-between; aspect-ratio: 1; padding: 5px 6px; border-radius: 6px; background: color-mix(in srgb, var(--fg) 5%, transparent); font-family: 'Source Serif 4', Georgia, serif; font-size: min(19px, 7.2cqi); line-height: 1; font-variant-numeric: tabular-nums; }
+.sqgrid span i { font-style: normal; font-family: Manrope, sans-serif; font-size: 10px; opacity: .5; }
+.sqgrid span.k { background: var(--fg); color: var(--card); }
+.sqgrid span.k i { opacity: .7; }
 /* figures */
 .pgrid { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 2px; margin: 2px 0 16px; font-size: 10px; font-variant-numeric: tabular-nums; }
 .pgrid span { aspect-ratio: 1; display: grid; place-items: center; border-radius: 4px; color: color-mix(in srgb, var(--fg) 32%, transparent); }
@@ -598,6 +610,8 @@ body.notes main { max-width: 1180px; }
 @media (max-width: 600px) {
   .ngrid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
   .nb.w, .nb.wp { grid-column: span 2; }
+  .sqgrid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .sqgrid span { font-size: min(19px, 5.4cqi); }
   .nin { padding: 16px 14px 13px; border-radius: 14px; }
   .nhero { margin: 2px 0 12px; }
   .ntitle { font-size: 13px; gap: 8px; }

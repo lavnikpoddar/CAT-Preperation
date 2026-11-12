@@ -581,7 +581,7 @@ body.notes main { max-width: 1180px; }
 .nex span, .ntrap span { display: block; font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; opacity: .6; margin-bottom: 2px; }
 .ntab { border-collapse: collapse; width: 100%; margin: 4px 0 12px; font-size: 13.5px; font-variant-numeric: tabular-nums; }
 .ntab th, .ntab td { text-align: left; padding: 5px 10px 5px 0; border-top: 1px solid color-mix(in srgb, currentColor 14%, transparent); }
-.ntab th { font-weight: 500; }
+.ntab th { font-weight: 500; white-space: nowrap; }
 .ntab td { opacity: .7; }
 /* stacked formulas: several related tools in one card, formula big, what it is for small beneath */
 .nstack { margin: 2px 0 18px; }

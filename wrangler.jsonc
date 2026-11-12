@@ -1,14 +1,10 @@
 {
-  // Cloudflare Workers: a small Worker (worker.js) checks the password, then serves this folder as static assets.
+  // Cloudflare Workers static site: serves this folder as assets.
   // Deploy with `npx wrangler deploy` (or connect the repo in the Cloudflare dashboard).
-  // Set the SITE_PASSWORD secret to turn the password on.
   "name": "cat-preperation",
-  "main": "worker.js",
   "compatibility_date": "2026-11-04",
   "assets": {
     "directory": "./",
-    "binding": "ASSETS",
-    "run_worker_first": true,
     "not_found_handling": "none",
     "html_handling": "auto-trailing-slash"
   }

@@ -875,14 +875,25 @@ const NOTES = [
       ], body: `
       <p class="nex"><span>Example</span>a + b = 5 and ab = 6, so a³ + b³ = 5³ − 3 × 6 × 5 = 125 − 90 = 35. (Check: 2³ + 3³ = 35.)</p>
       <p>Signs in the factor forms: a³ + b³ has (a + b) and then <b>− ab</b>; a³ − b³ has (a − b) and then <b>+ ab</b>. The middle sign is always the opposite.</p>` },
-    { title: 'When does aⁿ ± bⁿ divide?', lhs: true, wp: true, tone: 'soft', stack: [
-        ['always', 'aⁿ − bⁿ is divisible by (a − b)'],
-        ['n even', 'aⁿ − bⁿ is divisible by (a + b) when'],
-        ['n odd', 'aⁿ + bⁿ is divisible by (a + b) when'],
+    { title: 'aⁿ ± bⁿ: odd and even powers', lhs: true, wp: true, tone: 'soft', stack: [
+        ['÷ (a + b)', 'aⁿ + bⁿ, n odd'],
+        ['no fixed rule', 'aⁿ + bⁿ, n even'],
+        ['÷ (a − b)', 'aⁿ − bⁿ, n odd'],
+        ['÷ (a − b) and (a + b)', 'aⁿ − bⁿ, n even'],
       ], body: `
-      <p>Handy for remainder questions.</p>
-      <p class="nex"><span>Example</span>17²⁰ − 1 = 17²⁰ − 1²⁰ is divisible by 17 − 1 = 16, and (n even) by 17 + 1 = 18.</p>
-      <p class="nex"><span>Example</span>7¹⁰ − 3¹⁰ is divisible by 4 and by 10. 2⁵ + 3⁵ is divisible by 5.</p>` },
+      <p><b>Why:</b> the rules come straight from the factorisations.</p>
+      <table class="ntab nform">
+        <tr><th>a³ + b³</th><td>(a + b)(a² − ab + b²): odd power of a sum, (a + b) is a factor</td></tr>
+        <tr><th>a³ − b³</th><td>(a − b)(a² + ab + b²): (a − b) is a factor</td></tr>
+        <tr><th>a² − b²</th><td>(a + b)(a − b): even power of a difference, both are factors</td></tr>
+        <tr><th>a⁴ − b⁴</th><td>(a² − b²)(a² + b²) = (a − b)(a + b)(a² + b²)</td></tr>
+        <tr><th>a² + b²</th><td>cannot be factorised, so even powers of a sum give no rule</td></tr>
+      </table>
+      <p class="nex"><span>n even, difference</span>5⁴ − 2⁴ = 609, divisible by 5 − 2 = 3 and by 5 + 2 = 7.</p>
+      <p class="nex"><span>n odd, difference</span>5³ − 2³ = 117, divisible by 3 but not by 7.</p>
+      <p class="nex"><span>n even, sum</span>2² + 6² = 40 is divisible by 8, but 2² + 3² = 13 is not divisible by 5. No rule either way.</p>
+      <p class="nex"><span>Remainders</span>17²⁰ − 1 = 17²⁰ − 1²⁰ (n even) is divisible by 16 and by 18. 2⁵ + 3⁵ (n odd) is divisible by 5.</p>
+      <p class="ntrap"><span>Watch out</span>aⁿ − bⁿ is divisible by (a − b) for every n, odd or even. Only (a + b) depends on n being even.</p>` },
     { title: 'If x + 1/x = k', lhs: true, wp: true, stack: [
         ['k² − 2', `x² + ${fr('1', 'x²')} =`],
         ['k³ − 3k', `x³ + ${fr('1', 'x³')} =`],

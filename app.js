@@ -780,25 +780,7 @@ const NOTES = [
       <p class="nex"><span>Long way</span>x = 0.25656…, 10x = 2.5656…, 1000x = 256.5656…. Subtract: 990x = 254, so x = 254/990 = 127/495.</p>
       <p class="ntrap"><span>Watch out</span>Reduce at the end: the options will say 127/495, not 254/990.</p>
       <p>Every recurring decimal is rational: it can be written as p/q.</p>` },
-    { title: 'Is it prime?', tone: 'ink', wp: true, stack: [
-        ['p ≤ √N', 'divide only by primes up to √N'],
-        ['6k ± 1', 'every prime above 3 has this form'],
-        ['p² − 1 = 24k', 'for every prime above 3'],
-        ['≠ 3, 6, 9', 'its digital sum, except for 3 itself'],
-      ], fig: 'sixk', body: `
-      <p>The last three are quick filters: if a number fails one, it is not prime. Only <b>√N</b> proves a number prime.</p>
-      <p class="nex"><span>Filters are not proof</span>91 = 6 × 15 + 1, its digital sum is 1 and 91² − 1 = 24 × 345, yet 91 = 7 × 13.</p>
-      <p><b>√N:</b> a factor above √N would need a partner below √N, which you have already tried. 143: √143 ≈ 11.96, try 2, 3, 5, 7, 11, and 143 = 11 × 13. 731: √731 ≈ 27.04, try primes up to 23, and 731 = 17 × 43.</p>
-      <p><b>6k ± 1:</b> divided by 6, a prime above 3 leaves 1 or 5. Remainders 0, 2 and 4 make it even, 3 makes it a multiple of 3. The reverse is false: 25 = 6 × 4 + 1 = 5 × 5.</p>
-      <p><b>24k:</b> 5² − 1 = 24, 7² − 1 = 48. <span class="nwhy">(p − 1)(p + 1) are consecutive even numbers, one a multiple of 4, so the product is a multiple of 8; one of p − 1, p, p + 1 is a multiple of 3, and it is not p.</span></p>
-      <p><b>Digital sum:</b> add the digits until one is left, 949876 → 43 → 7. A digital sum of 3, 6 or 9 means divisible by 3.</p>
-      <p class="ntrap"><span>Watch out</span>It is ≤ √N, not &lt; √N: 121 = 11 × 11. And 2 and 3 fail the 6k ± 1 and 24k tests but are prime.</p>` },
-    { hero: '2 factors', title: 'What a prime is', tone: 'soft', hs: 'l', wp: true, body: `
-      <p>Exactly two distinct factors: 1 and itself. 7 has 1, 7. 10 has 1, 2, 5, 10, so it is not prime.</p>
-      <p><b>2</b> is the only even prime: every other even number also has 2 as a factor.</p>
-      <p>A <b>composite</b> has 3 or more factors (9: 1, 3, 9). The smallest composite is 4.</p>
-      <p><b>1</b> is neither prime nor composite. Every natural number above 1 is one or the other.</p>` },
-    { fig: 'primes100', title: 'Primes under 100', wp: true, body: `
+    { fig: 'primes100', title: 'Primes under 100', w: true, body: `
       <p>Up to 50: <b>15</b> primes. Up to 100: <b>25</b>. Up to 200: <b>46</b>.</p>
       <p>By tens: 2, 3, 5, 7 · 11, 13, 17, 19 · 23, 29 · 31, 37 · 41, 43, 47 · 53, 59 · 61, 67 · 71, 73, 79 · 83, 89 · 97.</p>` },
     { fig: 'squares30', title: 'Squares up to 30', wp: true, body: `
@@ -821,6 +803,24 @@ const NOTES = [
       <p><b>Evenly spaced numbers</b> (first a, last l, n terms): n × (a + l)/2. With an odd count that is count × middle term: 33 + 35 + 37 + 39 + 41 = 5 × 37 = 185.</p>
       <p>Five consecutive odd numbers: 10k + 25 = 5(2k + 5), always an odd multiple of 5.</p>
       <p class="ntrap"><span>Watch out</span>“Five consecutive odd numbers add up to 197” cannot happen: 197 is not a multiple of 5.</p>` },
+    { title: 'Is it prime?', tone: 'ink', wp: true, stack: [
+        ['p ≤ √N', 'divide only by primes up to √N'],
+        ['6k ± 1', 'every prime above 3 has this form'],
+        ['p² − 1 = 24k', 'for every prime above 3'],
+        ['≠ 3, 6, 9', 'its digital sum, except for 3 itself'],
+      ], fig: 'sixk', body: `
+      <p>The last three are quick filters: if a number fails one, it is not prime. Only <b>√N</b> proves a number prime.</p>
+      <p class="nex"><span>Filters are not proof</span>91 = 6 × 15 + 1, its digital sum is 1 and 91² − 1 = 24 × 345, yet 91 = 7 × 13.</p>
+      <p><b>√N:</b> a factor above √N would need a partner below √N, which you have already tried. 143: √143 ≈ 11.96, try 2, 3, 5, 7, 11, and 143 = 11 × 13. 731: √731 ≈ 27.04, try primes up to 23, and 731 = 17 × 43.</p>
+      <p><b>6k ± 1:</b> divided by 6, a prime above 3 leaves 1 or 5. Remainders 0, 2 and 4 make it even, 3 makes it a multiple of 3. The reverse is false: 25 = 6 × 4 + 1 = 5 × 5.</p>
+      <p><b>24k:</b> 5² − 1 = 24, 7² − 1 = 48. <span class="nwhy">(p − 1)(p + 1) are consecutive even numbers, one a multiple of 4, so the product is a multiple of 8; one of p − 1, p, p + 1 is a multiple of 3, and it is not p.</span></p>
+      <p><b>Digital sum:</b> add the digits until one is left, 949876 → 43 → 7. A digital sum of 3, 6 or 9 means divisible by 3.</p>
+      <p class="ntrap"><span>Watch out</span>It is ≤ √N, not &lt; √N: 121 = 11 × 11. And 2 and 3 fail the 6k ± 1 and 24k tests but are prime.</p>` },
+    { hero: '2 factors', title: 'What a prime is', tone: 'soft', hs: 'l', wp: true, body: `
+      <p>Exactly two distinct factors: 1 and itself. 7 has 1, 7. 10 has 1, 2, 5, 10, so it is not prime.</p>
+      <p><b>2</b> is the only even prime: every other even number also has 2 as a factor.</p>
+      <p>A <b>composite</b> has 3 or more factors (9: 1, 3, 9). The smallest composite is 4.</p>
+      <p><b>1</b> is neither prime nor composite. Every natural number above 1 is one or the other.</p>` },
   ]],
 ];
 function renderNotes() {

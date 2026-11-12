@@ -596,7 +596,7 @@ body.notes main { max-width: 1180px; }
 .sqgrid span.k { background: var(--fg); color: var(--card); }
 .sqgrid span.k i { opacity: .7; }
 /* figures */
-.pgrid { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 2px; margin: 2px 0 16px; font-size: 10px; font-variant-numeric: tabular-nums; }
+.pgrid { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 2px; margin: 2px 0 16px; font-size: max(10px, min(15px, 2.6cqi)); font-variant-numeric: tabular-nums; }
 .pgrid span { aspect-ratio: 1; display: grid; place-items: center; border-radius: 4px; color: color-mix(in srgb, var(--fg) 32%, transparent); }
 .pgrid span.p { background: var(--fg); color: var(--card); font-weight: 600; }
 .ofig { display: block; width: 130px; height: auto; }

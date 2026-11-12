@@ -835,12 +835,69 @@ const NOTES = [
       <p>A <b>composite</b> has 3 or more factors (9: 1, 3, 9). The smallest composite is 4.</p>
       <p><b>1</b> is neither prime nor composite. Every natural number above 1 is one or the other.</p>` },
   ]],
+  ['Algebra', [
+    { title: 'Squares', lhs: true, wp: true, tone: 'ink', stack: [
+        ['a² + 2ab + b²', '(a + b)² ='],
+        ['a² − 2ab + b²', '(a − b)² ='],
+        ['(a + b)(a − b)', 'a² − b² ='],
+        ['(a + b)² − 2ab', 'a² + b² ='],
+        ['4ab', '(a + b)² − (a − b)² ='],
+        ['2(a² + b²)', '(a + b)² + (a − b)² ='],
+      ], body: `
+      <p class="nex"><span>Fast squares</span>103² = (100 + 3)² = 10000 + 600 + 9 = 10609. 97² = (100 − 3)² = 9409.</p>
+      <p class="nex"><span>Fast products</span>52 × 48 = (50 + 2)(50 − 2) = 2500 − 4 = 2496. 52² − 48² = (52 + 48)(52 − 48) = 400.</p>
+      <p>If you know a + b and ab, you know a² + b² without finding a and b.</p>
+      <p><b>a² + b² cannot be factorised</b> (over real numbers). Rewrite it instead: (a + b)² − 2ab or (a − b)² + 2ab.</p>
+      <p class="ntrap"><span>Watch out</span>(a + b)² is not a² + b²: the 2ab is the part that gets forgotten. And a² − b² is (a + b)(a − b), one plus and one minus, never (a − b)(a − b).</p>` },
+    { title: 'Three variables', lhs: true, wp: true, tone: 'soft', w: true, stack: [
+        ['a² + b² + c² + 2(ab + bc + ca)', '(a + b + c)² ='],
+        ['(a + b + c)(a² + b² + c² − ab − bc − ca)', 'a³ + b³ + c³ − 3abc ='],
+        ['3abc', 'if a + b + c = 0, then a³ + b³ + c³ ='],
+      ], body: `
+      <p>The last line is the one CAT loves: when three numbers add to zero, their cubes add to three times their product.</p>
+      <p class="nex"><span>Example</span>1, 2, −3 add to 0, so 1 + 8 − 27 = −18 = 3 × 1 × 2 × (−3).</p>
+      <p>Turn the first line around to get a² + b² + c² = (a + b + c)² − 2(ab + bc + ca).</p>` },
+    { title: 'Quadratic ax² + bx + c = 0', lhs: true, wp: true, tone: 'ink', stack: [
+        [fr('−b ± √(b² − 4ac)', '2a'), 'roots ='],
+        [`− ${fr('b', 'a')}`, 'sum of roots ='],
+        [fr('c', 'a'), 'product of roots ='],
+        ['b² − 4ac', 'D (decides the roots) ='],
+      ], body: `
+      <p>D &gt; 0: two different real roots. D = 0: two equal roots. D &lt; 0: no real roots.</p>
+      <p class="nex"><span>Example</span>x² − 5x + 6 = 0: sum 5, product 6, so the roots are 2 and 3 without any formula.</p>
+      <p class="ntrap"><span>Watch out</span>The sum is −b/a, with the minus. Here b = −5, so the sum is +5.</p>` },
+    { title: 'Cubes', lhs: true, wp: true, stack: [
+        ['a³ + b³ + 3ab(a + b)', '(a + b)³ ='],
+        ['a³ − b³ − 3ab(a − b)', '(a − b)³ ='],
+        ['(a + b)(a² − ab + b²)', 'a³ + b³ ='],
+        ['(a − b)(a² + ab + b²)', 'a³ − b³ ='],
+        ['(a + b)³ − 3ab(a + b)', 'a³ + b³ ='],
+      ], body: `
+      <p class="nex"><span>Example</span>a + b = 5 and ab = 6, so a³ + b³ = 5³ − 3 × 6 × 5 = 125 − 90 = 35. (Check: 2³ + 3³ = 35.)</p>
+      <p>Signs in the factor forms: a³ + b³ has (a + b) and then <b>− ab</b>; a³ − b³ has (a − b) and then <b>+ ab</b>. The middle sign is always the opposite.</p>` },
+    { title: 'When does aⁿ ± bⁿ divide?', lhs: true, wp: true, tone: 'soft', stack: [
+        ['always', 'aⁿ − bⁿ is divisible by (a − b)'],
+        ['n even', 'aⁿ − bⁿ is divisible by (a + b) when'],
+        ['n odd', 'aⁿ + bⁿ is divisible by (a + b) when'],
+      ], body: `
+      <p>Handy for remainder questions.</p>
+      <p class="nex"><span>Example</span>17²⁰ − 1 = 17²⁰ − 1²⁰ is divisible by 17 − 1 = 16, and (n even) by 17 + 1 = 18.</p>
+      <p class="nex"><span>Example</span>7¹⁰ − 3¹⁰ is divisible by 4 and by 10. 2⁵ + 3⁵ is divisible by 5.</p>` },
+    { title: 'If x + 1/x = k', lhs: true, wp: true, stack: [
+        ['k² − 2', `x² + ${fr('1', 'x²')} =`],
+        ['k³ − 3k', `x³ + ${fr('1', 'x³')} =`],
+        ['k² − 4', `(x − ${fr('1', 'x')})² =`],
+      ], body: `
+      <p>Square or cube x + 1/x and the cross terms are just numbers, because x × 1/x = 1.</p>
+      <p class="nex"><span>Example</span>x + 1/x = 3: x² + 1/x² = 9 − 2 = 7, x³ + 1/x³ = 27 − 9 = 18, and x⁴ + 1/x⁴ = 7² − 2 = 47.</p>
+      <p class="ntrap"><span>Watch out</span>For real x, x + 1/x is never between −2 and 2. A question saying x + 1/x = 1 has no real x.</p>` },
+  ]],
 ];
 function renderNotes() {
   const card = c => `<div class="nb ${c.w ? 'w' : ''} ${c.wp ? 'wp' : ''} ${c.tone || ''}"><details class="nin">
       <summary>
         ${c.hero ? `<div class="nhero ${c.hs || 'l'}">${c.hero}</div>` : ''}
-        ${c.stack ? `<div class="nstack">${c.stack.map(([f, l]) => `<div><span class="nsf">${f}</span><span class="nsl">${esc(l)}</span></div>`).join('')}</div>` : ''}
+        ${c.stack ? `<div class="nstack ${c.lhs ? 'lhs' : ''}">${c.stack.map(([f, l]) => c.lhs ? `<div><span class="nsl">${l}</span><span class="nsf">${f}</span></div>` : `<div><span class="nsf">${f}</span><span class="nsl">${esc(l)}</span></div>`).join('')}</div>` : ''}
         ${c.fig && !c.hero && !c.stack ? FIGS[c.fig]() : ''}
         <div class="ntitle">${esc(c.title)}<span class="nplus" aria-hidden="true"></span></div>
       </summary>
@@ -857,14 +914,25 @@ function renderNotes() {
     </section>`).join('')}`;
   app().querySelectorAll('.ngrid').forEach(masonry);
 }
+// Shrink any formula that is wider than its card until it fits on one line.
+function fitText(nb) {
+  nb.querySelectorAll('.nhero, .nsf').forEach(el => {
+    el.style.fontSize = '';
+    const box = el.closest('summary') || el.parentElement;
+    let size = parseFloat(getComputedStyle(el).fontSize);
+    while (el.scrollWidth > box.clientWidth + 1 && size > 12) { size *= 0.94; el.style.fontSize = size + 'px'; }
+  });
+}
 // Pinterest-style packing on a CSS grid: each card spans as many 4px rows as its content needs.
 function masonry(grid) {
   const fit = nb => {
+    fitText(nb);
     const gap = parseFloat(getComputedStyle(grid).rowGap) || 0;
     nb.style.gridRowEnd = 'span ' + Math.ceil((nb.firstElementChild.getBoundingClientRect().height + gap) / (4 + gap));
   };
   const ro = new ResizeObserver(es => es.forEach(e => fit(e.target.parentElement)));
   grid.querySelectorAll('.nb').forEach(nb => { fit(nb); ro.observe(nb.firstElementChild); });
+  if (document.fonts) document.fonts.ready.then(() => grid.querySelectorAll('.nb').forEach(fit));
 }
 
 /* ---------- reader ---------- */

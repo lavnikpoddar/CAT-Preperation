@@ -554,7 +554,7 @@ body.notes main { max-width: 1180px; }
 .nin summary::-webkit-details-marker { display: none; }
 .nin:hover { border-color: color-mix(in srgb, var(--fg) 40%, var(--line)); }
 .nin summary:focus-visible { outline: 2px solid currentColor; outline-offset: 6px; border-radius: 8px; }
-.nhero { font-family: 'Source Serif 4', Georgia, serif; font-weight: 400; line-height: 1.05; letter-spacing: -.02em; margin: 6px 0 18px; white-space: nowrap; }
+.nhero { max-width: max-content; font-family: 'Source Serif 4', Georgia, serif; font-weight: 400; line-height: 1.05; letter-spacing: -.02em; margin: 6px 0 18px; white-space: nowrap; }
 .nhero.xl { font-size: min(64px, 29cqi); }
 .nhero.l { font-size: min(46px, 18cqi); }
 .nhero.m { font-size: min(34px, 12.5cqi); }
@@ -588,8 +588,10 @@ body.notes main { max-width: 1180px; }
 .nstack > div { display: flex; flex-direction: column; gap: 3px; padding: 12px 0; border-bottom: 1px solid color-mix(in srgb, currentColor 14%, transparent); }
 .nstack > div:first-child { padding-top: 0; }
 .nstack > div:last-child { border-bottom: 0; padding-bottom: 0; }
-.nsf { font-family: 'Source Serif 4', Georgia, serif; font-size: min(34px, 13cqi); line-height: 1.15; letter-spacing: -.01em; white-space: nowrap; }
+.nsf { display: block; max-width: max-content; font-family: 'Source Serif 4', Georgia, serif; font-size: min(34px, 13cqi); line-height: 1.15; letter-spacing: -.01em; white-space: nowrap; }
 .nsl { font-size: 12.5px; opacity: .6; }
+.nstack.lhs .nsl { font-family: 'Source Serif 4', Georgia, serif; font-size: 15px; opacity: .65; }
+.nstack.lhs .nsl .fr { font-size: .72em; }
 .sqgrid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 3px; margin: 2px 0 18px; }
 .sqgrid span { display: flex; flex-direction: column; justify-content: space-between; aspect-ratio: 1; padding: 5px 6px; border-radius: 6px; background: color-mix(in srgb, var(--fg) 5%, transparent); font-family: 'Source Serif 4', Georgia, serif; font-size: min(19px, 7.2cqi); line-height: 1; font-variant-numeric: tabular-nums; }
 .sqgrid span i { font-style: normal; font-family: Manrope, sans-serif; font-size: 10px; opacity: .5; }

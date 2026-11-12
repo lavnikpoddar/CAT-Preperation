@@ -540,7 +540,7 @@ h1.with-ic { display: flex; align-items: center; gap: 14px; }
 .ncard { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 18px 22px; margin-bottom: 12px; font-size: 15px; line-height: 1.65; }
 .ncard h2 { font-size: 16px; font-weight: 600; margin: 0 0 10px; }
 .ncard p { margin: 0 0 10px; }
-.ncard ul { margin: 0 0 10px; padding-left: 18px; }
+.ncard ul, .ncard ol { margin: 0 0 10px; padding-left: 20px; }
 .ncard li { margin-bottom: 6px; }
 .ncard > :last-child { margin-bottom: 0; }
 .nwhy { color: var(--muted); font-size: 14px; }

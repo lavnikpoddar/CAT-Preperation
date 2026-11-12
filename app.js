@@ -745,10 +745,11 @@ function initStrategy() {
 /* ---------- notes: things to remember, written up from lesson screenshots ---------- */
 const NOTES = [
   ['Number system', [
-    ['Prime numbers: the basics', `
+    ['Prime and composite numbers: the basics', `
       <ul>
         <li>A prime has exactly <b>two distinct factors</b>: 1 and itself. 7 has 1, 7. 10 has 1, 2, 5, 10, so it is not prime.</li>
-        <li><b>1</b> is neither prime nor composite: it has only one factor.</li>
+        <li>A <b>composite</b> number is a natural number with <b>3 or more factors</b>. 9 has 1, 3, 9. The smallest composite is 4.</li>
+        <li><b>1</b> is neither prime nor composite: it has only one factor. Every natural number above 1 is one or the other.</li>
         <li><b>2</b> is the only even prime.</li>
         <li>How many primes: up to 50 there are <b>15</b>, up to 100 there are <b>25</b>, up to 200 there are <b>46</b>.</li>
       </ul>
@@ -769,6 +770,16 @@ const NOTES = [
       <p class="nex"><span>Example</span>143: √143 is about 11.96, so try 2, 3, 5, 7, 11. 143 = 11 × 13, not prime.</p>
       <p class="nex"><span>Example</span>731: √731 is about 27.04, so try the primes up to 23. 731 = 17 × 43, not prime.</p>
       <p class="ntrap"><span>Watch out</span>It is primes ≤ √N, not &lt; √N. For 121, √121 = 11, and 11 is the factor.</p>`],
+    ['Prime or not? A four-step check', `
+      <ol>
+        <li>Is it of the form <b>6k ± 1</b>? (Leaves remainder 1 or 5 when divided by 6.)</li>
+        <li>Is its <b>digital sum</b> anything but 3, 6 or 9?</li>
+        <li>Is <b>p² − 1 a multiple of 24</b> (p² − 1 = 24k)?</li>
+        <li>Does <b>no prime up to √N</b> divide it?</li>
+      </ol>
+      <p>Steps 1 to 3 are quick filters: a “no” at any of them means not prime. Only step 4 proves a number is prime. In practice step 3 is the slowest, so the first two filters and then step 4 are usually enough.</p>
+      <p class="nex"><span>Example</span>91 = 6 × 15 + 1, its digital sum is 1, and 91² − 1 = 8280 = 24 × 345. It passes all three filters, yet 91 = 7 × 13. Only step 4 catches it.</p>
+      <p class="ntrap"><span>Watch out</span>For numbers above 3 only: 2 and 3 fail steps 1 and 3 and are still prime.</p>`],
     ['Shortcuts about primes', `
       <ul>
         <li>Every prime <b>greater than 3</b> has the form <b>6k ± 1</b>: divided by 6 it leaves remainder 1 or 5. “6k + 1” just means remainder 1 when divided by 6, since dividend = divisor × quotient + remainder.</li>

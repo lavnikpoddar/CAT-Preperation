@@ -111,6 +111,7 @@ const ICON_PATHS = {
   time: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
   flag: '<path d="M6 21V4"/><path d="M6 4.5h11l-2 4 2 4H6"/>',
   PAPERS: '<path d="M7 3.5h7l4 4V20a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1z"/><path d="M14 3.5v4h4"/><path d="M9 12h6M9 16h6"/>',
+  notes: '<path d="M6.5 3.5h8l3.5 3.5v13.5h-11.5z"/><path d="M14.5 3.5v3.5h3.5"/><path d="M9.5 11.5h5.5M9.5 15h5.5"/>',
   reading: '<path d="M4.5 5.5h6a2 2 0 0 1 2 2v12a1.5 1.5 0 0 0-1.5-1.5h-6.5z"/><path d="M19.5 5.5h-6a2 2 0 0 0-2 2v12a1.5 1.5 0 0 1 1.5-1.5h6.5z"/>',
   link: '<path d="M10 14L20 4"/><path d="M15 4h5v5"/><path d="M19 13v6a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h6"/>',
   tick: '<path d="M7 12.5l3.2 3.2L17 9"/>',
@@ -133,14 +134,16 @@ function route() {
   S.routeSec = (h.match(/[?&]sec=(QA|DILR|VARC)/) || [])[1] || null;
   if (m && m[1] === 'q' && !S.byId.has(m[2])) { location.hash = '#/'; return; }
   const isQ = !!(m && m[1] === 'q');
-  const navKey = h.startsWith('#/settings') ? 'settings' : h.startsWith('#/reading') || h.startsWith('#/read/') ? 'reading' : m && m[1] === 'sec' ? m[2] : m ? chapter(m[1] === 'q' ? S.byId.get(m[2]).ch : m[2]).section : 'home';
+  const navKey = h.startsWith('#/settings') ? 'settings' : h.startsWith('#/reading') || h.startsWith('#/read/') ? 'reading' : h.startsWith('#/notes') ? 'notes' : m && m[1] === 'sec' ? m[2] : m ? chapter(m[1] === 'q' ? S.byId.get(m[2]).ch : m[2]).section : 'home';
   document.querySelectorAll('#nav a').forEach(a => a.classList.toggle('on', a.dataset.nav === navKey));
+  const onTab = $('#nav a.on'); if (onTab) { const n = $('#nav'); n.scrollLeft = Math.max(0, onTab.offsetLeft - (n.clientWidth - onTab.offsetWidth) / 2); }
   document.body.classList.toggle('wide', isQ);
   document.body.classList.toggle('has-dock', isQ);
   $('#dock').hidden = !isQ; $('#dock-meta').hidden = !isQ;
   $('#ai-toggle').hidden = !isQ;
   if (!isQ) closePanel(true);
   if (h.startsWith('#/settings')) renderSettings();
+  else if (h.startsWith('#/notes')) renderNotes();
   else if (h.startsWith('#/read/')) renderReader(decodeURIComponent(h.slice(7)));
   else if (h.startsWith('#/reading')) renderReading();
   else if (m && m[1] === 'ch') renderChapter(m[2]);
@@ -737,6 +740,65 @@ function initStrategy() {
     if (dy > 70) closeStrategy();
   };
   head.addEventListener('touchend', end); head.addEventListener('touchcancel', end);
+}
+
+/* ---------- notes: things to remember, written up from lesson screenshots ---------- */
+const NOTES = [
+  ['Number system', [
+    ['Prime numbers: the basics', `
+      <ul>
+        <li>A prime has exactly <b>two distinct factors</b>: 1 and itself. 7 has 1, 7. 10 has 1, 2, 5, 10, so it is not prime.</li>
+        <li><b>1</b> is neither prime nor composite: it has only one factor.</li>
+        <li><b>2</b> is the only even prime.</li>
+        <li>How many primes: up to 50 there are <b>15</b>, up to 100 there are <b>25</b>, up to 200 there are <b>46</b>.</li>
+      </ul>
+      <table class="ntab"><caption>Primes under 100, by tens</caption>
+        <tr><th>1–9</th><td>2, 3, 5, 7</td></tr>
+        <tr><th>10s</th><td>11, 13, 17, 19</td></tr>
+        <tr><th>20s</th><td>23, 29</td></tr>
+        <tr><th>30s</th><td>31, 37</td></tr>
+        <tr><th>40s</th><td>41, 43, 47</td></tr>
+        <tr><th>50s</th><td>53, 59</td></tr>
+        <tr><th>60s</th><td>61, 67</td></tr>
+        <tr><th>70s</th><td>71, 73, 79</td></tr>
+        <tr><th>80s</th><td>83, 89</td></tr>
+        <tr><th>90s</th><td>97</td></tr>
+      </table>`],
+    ['Is N prime? Test only up to √N', `
+      <p>Divide N by the primes <b>up to √N</b>. If none of them divides it, N is prime. A factor bigger than √N would need a partner smaller than √N, which you have already tried.</p>
+      <p class="nex"><span>Example</span>143: √143 is about 11.96, so try 2, 3, 5, 7, 11. 143 = 11 × 13, not prime.</p>
+      <p class="nex"><span>Example</span>731: √731 is about 27.04, so try the primes up to 23. 731 = 17 × 43, not prime.</p>
+      <p class="ntrap"><span>Watch out</span>It is primes ≤ √N, not &lt; √N. For 121, √121 = 11, and 11 is the factor.</p>`],
+    ['Shortcuts about primes', `
+      <ul>
+        <li>Every prime <b>greater than 3</b> has the form <b>6k ± 1</b>: divided by 6 it leaves remainder 1 or 5. “6k + 1” just means remainder 1 when divided by 6, since dividend = divisor × quotient + remainder.</li>
+        <li>The reverse is false: 25 = 6 × 4 + 1, but 25 = 5 × 5. Use 6k ± 1 to rule a number out, never to prove it prime.</li>
+        <li>For every prime p <b>greater than 3</b>, <b>p² − 1 is divisible by 24</b>. 5² − 1 = 24, 7² − 1 = 48, 11² − 1 = 120.<br><span class="nwhy">Why: p² − 1 = (p − 1)(p + 1), two consecutive even numbers, so one is a multiple of 4 and the product is a multiple of 8. One of p − 1, p, p + 1 is a multiple of 3, and it is not p.</span></li>
+        <li>The <b>digital sum</b> of a prime is never 3, 6 or 9, because such a number is divisible by 3. The one exception is 3 itself.</li>
+        <li>Digital sum: add the digits, and keep adding until one digit is left. 949876 → 9+4+9+8+7+6 = 43 → 4+3 = <b>7</b>.</li>
+      </ul>
+      <p class="ntrap"><span>Watch out</span>The 6k ± 1 and p² − 1 rules fail for 2 and 3: 3² − 1 = 8 is not divisible by 24.</p>`],
+    ['Sums of the first n numbers', `
+      <table class="ntab nform">
+        <tr><th>1 + 2 + 3 + … + n</th><td>n(n + 1) / 2</td></tr>
+        <tr><th>1² + 2² + … + n²</th><td>n(n + 1)(2n + 1) / 6</td></tr>
+        <tr><th>1³ + 2³ + … + n³</th><td>[n(n + 1) / 2]², the square of the first sum</td></tr>
+        <tr><th>1 + 3 + 5 + … + (2n − 1)</th><td>n², the first n odd numbers</td></tr>
+        <tr><th>2 + 4 + 6 + … + 2n</th><td>n(n + 1) = n² + n, twice the first sum</td></tr>
+      </table>
+      <p>Count the terms first. The n-th odd number is 2n − 1 and the n-th even number is 2n.</p>
+      <p class="nex"><span>Example</span>1 + 3 + 5 + … + 91: 2k − 1 = 91 gives k = 46 terms, so the sum is 46² = 2116.</p>`],
+    ['Consecutive odd numbers', `
+      <p>Five consecutive odd numbers: (2k+1) + (2k+3) + (2k+5) + (2k+7) + (2k+9) = 10k + 25 = 5(2k + 5). Their sum is <b>always an odd multiple of 5</b>.</p>
+      <p>Faster: for an odd count of evenly spaced numbers, sum = count × middle term. 33 + 35 + 37 + 39 + 41 = 5 × 37 = 185.</p>
+      <p class="ntrap"><span>Watch out</span>“Five consecutive odd numbers add up to 197” is an invalid question: 197 is not a multiple of 5. Check the form before you start solving.</p>`],
+  ]],
+];
+function renderNotes() {
+  app().innerHTML = `<h1 class="with-ic"><span class="badge-ic lg">${icon('notes')}</span>Notes</h1>
+  <p class="lead">Things to remember, topic by topic.</p>
+  ${NOTES.map(([topic, cards]) => `<div class="ntopic">${esc(topic)}</div>` +
+    cards.map(([title, body]) => `<section class="ncard"><h2>${esc(title)}</h2>${body}</section>`).join('')).join('')}`;
 }
 
 /* ---------- reader ---------- */

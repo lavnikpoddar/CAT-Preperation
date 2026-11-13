@@ -849,6 +849,11 @@ const NOTES = [
       <p><b>2</b> is the only even prime: every other even number also has 2 as a factor.</p>
       <p>A <b>composite</b> has 3 or more factors (9: 1, 3, 9). The smallest composite is 4.</p>
       <p><b>1</b> is neither prime nor composite. Every natural number above 1 is one or the other.</p>` },
+    { hero: 'D = d × q + r', title: 'Dividend, divisor, quotient, remainder', tone: 'soft', hs: 'm', wp: true, body: `
+      <p><b>Dividend = divisor × quotient + remainder</b>, and the remainder is always smaller than the divisor (0 ≤ r &lt; d).</p>
+      <p class="nex"><span>Example</span>47 ÷ 5: 47 = 5 × 9 + 2, so the quotient is 9 and the remainder is 2.</p>
+      <p>“Leaves remainder 1 when divided by 6” just means the number is 6k + 1.</p>
+      <p class="nex"><span>Remainder shortcut</span>Work with remainders instead of big numbers. 17 × 23 ÷ 5: the remainders are 2 and 3, 2 × 3 = 6, which leaves 1. So 17 × 23 leaves 1. The same works for sums.</p>` },
   ]],
   ['Algebra', [
     { title: 'Squares', lhs: true, wp: true, tone: 'ink', stack: [

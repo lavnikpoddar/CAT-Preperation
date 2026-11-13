@@ -769,6 +769,21 @@ const FIGS = {
       ['6', '÷ 2 and ÷ 3'], ['7', 'rest − 2 × last digit'], ['8', 'last 3 digits ÷ 8'], ['9', 'digit sum ÷ 9'],
       ['10', 'ends in 0'], ['11', 'alternating digit sum'],
     ].map(([d, r]) => `<span><b>${d}</b>${r}</span>`).join('')}</div>`,
+  shiftScale: () => {
+    const cols = ['mean', 'median', 'mode', 'range', 'SD'];
+    const rows = [['+ k', ['+ k', '+ k', '+ k', 'same', 'same']], ['× k', ['× k', '× k', '× k', '× k', '× k']]];
+    return `<div class="ssgrid" style="--n:${cols.length}"><span></span>${cols.map(c => `<span class="h">${c}</span>`).join('')}
+      ${rows.map(([r, v]) => `<span class="r">${r}</span>${v.map(x => `<span class="${x === 'same' ? 'same' : 'ch'}">${x}</span>`).join('')}`).join('')}</div>`;
+  },
+  outlier: () => {
+    const vals = [2, 4, 6, 8, 40], W = 240, X = v => 62 + (v / 42) * (W - 72);
+    return `<svg class="olfig" viewBox="0 0 ${W} 84" aria-label="2, 4, 6, 8 and 40: the median is 6, the mean is pulled to 12">
+      <line x1="54" y1="48" x2="${W - 6}" y2="48" class="ax"/>
+      ${vals.map(v => `<circle cx="${X(v)}" cy="48" r="4.5" class="dot"/><text x="${X(v)}" y="70" class="tk">${v}</text>`).join('')}
+      <path d="M${X(6)} 38 l-5 -8 h10 z" class="mk"/><text x="${X(6) + 2}" y="20" class="lb" text-anchor="end">median 6</text>
+      <path d="M${X(12)} 38 l-5 -8 h10 z" class="mk hollow"/><text x="${X(12) - 2}" y="20" class="lb" text-anchor="start">mean 12</text>
+    </svg>`;
+  },
   sixk: () => `<div class="sixk">${[1, 2, 3, 4, 5, 6].map(r => `<span class="${r === 1 || r === 5 ? 'on' : ''}"><b>6k${r === 6 ? '' : ' + ' + r}</b>${r === 1 || r === 5 ? 'primes live here' : r === 6 ? '÷ 6' : r === 3 ? '÷ 3' : '÷ 2'}</span>`).join('')}</div>`,
 };
 const NOTES = [
@@ -902,6 +917,41 @@ const NOTES = [
       <p>Square or cube x + 1/x and the cross terms are just numbers, because x × 1/x = 1.</p>
       <p class="nex"><span>Example</span>x + 1/x = 3: x² + 1/x² = 9 − 2 = 7, x³ + 1/x³ = 27 − 9 = 18, and x⁴ + 1/x⁴ = 7² − 2 = 47.</p>
       <p class="ntrap"><span>Watch out</span>For real x, x + 1/x is never between −2 and 2. A question saying x + 1/x = 1 has no real x.</p>` },
+  ]],
+  ['Averages & statistics', [
+    { title: 'Measures of centre', lhs: true, wp: true, tone: 'ink', stack: [
+        [fr('sum of values', 'number of values'), 'mean ='],
+        ['the middle value', 'median, after sorting ='],
+        ['the most frequent', 'mode ='],
+      ], body: `
+      <p class="nex"><span>Example</span>3, 7, 7, 9, 14: mean = 40/5 = 8, median = 7, mode = 7.</p>
+      <p>With an even count, the median is the mean of the two middle values: 2, 4, 6, 8 has median 5.</p>
+      <p class="ntrap"><span>Watch out</span>Sort first. The median of 9, 2, 7 is 7, not 2.</p>` },
+    { fig: 'shiftScale', title: 'Change every value: what moves?', w: true, wp: true, body: `
+      <p><b>Add k</b> to every value: the centre moves by k, the spread does not change, because every gap stays the same.</p>
+      <p><b>Multiply</b> every value by k: everything is multiplied by k. (For a negative k, range and SD are multiplied by |k|, since they cannot be negative.)</p>
+      <p class="nex"><span>Example</span>Marks with mean 60 and SD 8. Add 5 grace marks: mean 65, SD still 8. Double every mark instead: mean 120, SD 16.</p>` },
+    { hero: 'sum = mean × n', title: 'Solve averages through the sum', tone: 'ink', hs: 'm', wp: true, body: `
+      <p>Most average questions are really about totals. Turn every mean into a sum, then compare the totals.</p>
+      <p class="nex"><span>Removing an item</span>Mean of 5 numbers is 20, so the sum is 100. One is removed and the mean of the other 4 is 18, a sum of 72. The removed number is 100 − 72 = 28.</p>
+      <p class="nex"><span>Adding an item</span>Mean of 10 numbers is 30. One more number raises the mean to 31. New number = 31 + 10 × (31 − 30) = 41. (Check: 300 + 41 = 341 = 11 × 31.)</p>` },
+    { hero: '1, 1, m, m, m', title: 'Largest or smallest possible median', hs: 'm', wp: true, body: `
+      <p>Recent papers like these. To make the median as large as possible, make everything below it as small as allowed and set everything above it equal to the median.</p>
+      <p class="nex"><span>Example</span>5 positive integers with mean 10 (sum 50). Largest median: 1 + 1 + m + m + m = 50, so m = 16 (1, 1, 16, 16, 16).</p>
+      <p>To make it as small as possible, push the values above the median as high as the conditions allow.</p>` },
+    { title: 'Measures of spread', lhs: true, wp: true, tone: 'soft', stack: [
+        ['largest − smallest', 'range ='],
+        ['typical distance from the mean', 'standard deviation (SD) ='],
+      ], body: `
+      <p>CAT rarely asks you to calculate SD; it tests how SD behaves (see the card on adding and multiplying).</p>
+      <p class="nwhy">For reference: SD = √( Σ(x − mean)² / n ). SD is 0 only when every value is the same.</p>` },
+    { fig: 'outlier', title: 'One extreme value pulls the mean, not the median', wp: true, body: `
+      <p>2, 4, 6, 8, 40: the median stays 6, but the 40 drags the mean up to 12. Without the 40, both would be 5.</p>
+      <p>Evenly spaced values (2, 4, 6, 8) are the opposite case: <b>mean = median</b>.</p>` },
+    { hero: fr('n₁a₁ + n₂a₂', 'n₁ + n₂'), title: 'Weighted average, mixtures, alligation', tone: 'soft', hs: 'm', wp: true, body: `
+      <p class="nex"><span>Example</span>30 boys averaging 60 and 20 girls averaging 70: (1800 + 1400)/50 = 64.</p>
+      <p><b>Alligation</b> gives the ratio directly: n₁ : n₂ = (a₂ − A) : (A − a₁). Here (70 − 64) : (64 − 60) = 6 : 4 = 30 : 20.</p>
+      <p>The combined average always lies between a₁ and a₂, closer to the bigger group.</p>` },
   ]],
 ];
 function renderNotes() {

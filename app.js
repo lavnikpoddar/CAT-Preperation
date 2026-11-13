@@ -790,6 +790,9 @@ const FIGS = {
       <div class="hlbr hcf"><span></span><em>HCF = 2 × 3 = 6</em></div>
       <div class="hlbr lcm"><span></span><em>LCM = 2 × 2 × 3 × 3 = 36</em></div>
     </div>`,
+  pct: () => `<div class="pcgrid">${[['1/2', '50'], ['1/3', '33.33'], ['2/3', '66.67'], ['1/4', '25'], ['3/4', '75'], ['1/5', '20'], ['1/6', '16.67'], ['1/7', '14.29'],
+      ['1/8', '12.5'], ['3/8', '37.5'], ['1/9', '11.11'], ['1/11', '9.09'], ['1/12', '8.33'], ['1/16', '6.25'], ['1/20', '5']]
+      .map(([f, p]) => `<span><i>${f}</i>${p}%</span>`).join('')}</div>`,
   sixk: () => `<div class="sixk">${[1, 2, 3, 4, 5, 6].map(r => `<span class="${r === 1 || r === 5 ? 'on' : ''}"><b>6k${r === 6 ? '' : ' + ' + r}</b>${r === 1 || r === 5 ? 'primes live here' : r === 6 ? '÷ 6' : r === 3 ? '÷ 3' : '÷ 2'}</span>`).join('')}</div>`,
 };
 const NOTES = [
@@ -1011,6 +1014,47 @@ const NOTES = [
       <p class="nex"><span>Example</span>30 boys averaging 60 and 20 girls averaging 70: (1800 + 1400)/50 = 64.</p>
       <p><b>Alligation</b> gives the ratio directly: n₁ : n₂ = (a₂ − A) : (A − a₁). Here (70 − 64) : (64 − 60) = 6 : 4 = 30 : 20.</p>
       <p>The combined average always lies between a₁ and a₂, closer to the bigger group.</p>` },
+  ]],
+  ['Percentages, profit & loss', [
+    { fig: 'pct', title: 'Fractions as percentages', w: true, wp: true, body: `
+      <p>Knowing these turns most percentage sums into fraction sums: 37.5% of 240 = 3/8 × 240 = 90.</p>
+      <p>Multiples follow: 2/7 = 28.57%, 5/8 = 62.5%, 5/6 = 83.33%.</p>` },
+    { title: 'Percentage change', lhs: true, wp: true, tone: 'ink', stack: [
+        [`${fr('new − old', 'old')} × 100`, '% change ='],
+        ['× (1 + x/100)', 'increase by x%:'],
+        ['× (1 − x/100)', 'decrease by x%:'],
+        [`a + b + ${fr('ab', '100')}`, 'successive changes a% then b% ='],
+      ], body: `
+      <p>Use a minus sign for a decrease in the successive formula.</p>
+      <p class="nex"><span>Example</span>Up 20% then down 10%: 20 − 10 − (20 × 10)/100 = 8% up. (Check: 1.2 × 0.9 = 1.08.)</p>
+      <p class="ntrap"><span>Watch out</span>Up 10% then down 10% is not zero: it is a 1% fall. The percentage is always of the current value.</p>` },
+    { title: 'Markups and discounts', lhs: true, wp: true, tone: 'ink', stack: [
+        [`m − d − ${fr('md', '100')}`, 'mark up m%, then discount d%: profit % ='],
+        [`d₁ + d₂ − ${fr('d₁d₂', '100')}`, 'successive discounts d₁% and d₂% ='],
+      ], body: `
+      <p>These are the successive-change formula with a minus sign on each discount.</p>
+      <p class="nex"><span>Example</span>Marked up 50%, then 20% off: 50 − 20 − 10 = 20% profit. (1.5 × 0.8 = 1.2.)</p>
+      <p class="nex"><span>Example</span>Discounts of 20% and 10% are a single discount of 20 + 10 − 2 = 28%, not 30%.</p>` },
+    { hero: `${fr('x', '100 + x')} × 100`, title: 'A is x% more than B, so B is this % less than A', hs: 'm', tone: 'soft', wp: true, body: `
+      <p>The base changes, so the percentage changes.</p>
+      <p class="nex"><span>Example</span>A is 25% more than B, so B is 25/125 = 20% less than A.</p>
+      <p>Going the other way: if A is x% less than B, B is x/(100 − x) × 100 % more than A. 20% less becomes 25% more.</p>
+      <p class="nex"><span>Price and consumption</span>Price rises 25%. To keep spending the same, cut consumption by 25/125 = 20%.</p>` },
+    { title: 'Profit and loss', lhs: true, wp: true, stack: [
+        ['SP − CP', 'profit ='],
+        [`${fr('profit', 'CP')} × 100`, 'profit % ='],
+        ['CP × (1 + p/100)', 'SP at p% profit ='],
+        ['MP × (1 − d/100)', 'SP after d% discount ='],
+      ], body: `
+      <p>CP = cost price, SP = selling price, MP = marked (list) price. Profit % is always on CP unless the question says otherwise; discount % is always on MP.</p>
+      <p class="nex"><span>Example</span>Bought for 80, sold for 100: profit 20, profit % = 20/80 = 25%.</p>
+      <p class="ntrap"><span>Watch out</span>20/100 = 20% would be profit on SP. Read which base the question uses.</p>` },
+    { title: 'Classic traps', lhs: true, wp: true, tone: 'soft', stack: [
+        [`${fr('x²', '100')} % loss`, 'same SP, x% gain on one, x% loss on the other:'],
+        [`${fr('true − false', 'false')} × 100`, 'false weight: profit % ='],
+      ], body: `
+      <p class="nex"><span>Same selling price</span>Two items sold at the same price, one at 10% profit and one at 10% loss: overall a 1% loss, never break-even.</p>
+      <p class="nex"><span>False weight</span>A shopkeeper gives 900 g for every 1 kg at cost price: profit = 100/900 = 11.11%.</p>` },
   ]],
 ];
 function renderNotes() {

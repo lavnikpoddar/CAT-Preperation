@@ -925,6 +925,7 @@ const NOTES = [
         ['the most frequent', 'mode ='],
       ], body: `
       <p class="nex"><span>Example</span>3, 7, 7, 9, 14: mean = 40/5 = 8, median = 7, mode = 7.</p>
+      <p><b>Remember:</b> <b>mo</b>de = <b>mo</b>st often. <b>Med</b>ian = the middle, like a road's median strip. <b>Mean</b> makes you do the most work: add everything, then divide.</p>
       <p>With an even count, the median is the mean of the two middle values: 2, 4, 6, 8 has median 5.</p>
       <p class="ntrap"><span>Watch out</span>Sort first. The median of 9, 2, 7 is 7, not 2.</p>` },
     { fig: 'shiftScale', title: 'Change every value: what moves?', w: true, wp: true, body: `
@@ -942,9 +943,12 @@ const NOTES = [
     { title: 'Measures of spread', lhs: true, wp: true, tone: 'soft', stack: [
         ['largest − smallest', 'range ='],
         ['typical distance from the mean', 'standard deviation (SD) ='],
+        ['SD²', 'variance ='],
       ], body: `
+      <p class="nex"><span>Range</span>3, 7, 7, 9, 14: 14 − 3 = 11.</p>
+      <p>Small SD: values bunched near the mean. Large SD: values spread out.</p>
       <p>CAT rarely asks you to calculate SD; it tests how SD behaves (see the card on adding and multiplying).</p>
-      <p class="nwhy">For reference: SD = √( Σ(x − mean)² / n ). SD is 0 only when every value is the same.</p>` },
+      <p class="nwhy">For reference: SD = √( Σ(x − mean)² / n ). SD is 0 only when every value is the same. Other measures (mean deviation, quartile deviation) almost never appear in CAT.</p>` },
     { fig: 'outlier', title: 'One extreme value pulls the mean, not the median', wp: true, body: `
       <p>2, 4, 6, 8, 40: the median stays 6, but the 40 drags the mean up to 12. Without the 40, both would be 5.</p>
       <p>Evenly spaced values (2, 4, 6, 8) are the opposite case: <b>mean = median</b>.</p>` },

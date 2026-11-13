@@ -784,6 +784,12 @@ const FIGS = {
       <path d="M${X(12)} 38 l-5 -8 h10 z" class="mk hollow"/><text x="${X(12) - 2}" y="20" class="lb" text-anchor="start">mean 12</text>
     </svg>`;
   },
+  hcflcm: () => `<div class="hlfig">
+      <div class="hlnums"><span>12 = 2 × 2 × 3</span><span>18 = 2 × 3 × 3</span></div>
+      <div class="hlrow"><span class="hlc"><i>only 12</i><b>2</b></span><span class="hlc mid"><i>both</i><b>2 · 3</b></span><span class="hlc"><i>only 18</i><b>3</b></span></div>
+      <div class="hlbr hcf"><span></span><em>HCF = 2 × 3 = 6</em></div>
+      <div class="hlbr lcm"><span></span><em>LCM = 2 × 2 × 3 × 3 = 36</em></div>
+    </div>`,
   sixk: () => `<div class="sixk">${[1, 2, 3, 4, 5, 6].map(r => `<span class="${r === 1 || r === 5 ? 'on' : ''}"><b>6k${r === 6 ? '' : ' + ' + r}</b>${r === 1 || r === 5 ? 'primes live here' : r === 6 ? '÷ 6' : r === 3 ? '÷ 3' : '÷ 2'}</span>`).join('')}</div>`,
 };
 const NOTES = [
@@ -854,6 +860,21 @@ const NOTES = [
       <p class="nex"><span>Example</span>47 ÷ 5: 47 = 5 × 9 + 2, so the quotient is 9 and the remainder is 2.</p>
       <p>“Leaves remainder 1 when divided by 6” just means the number is 6k + 1.</p>
       <p class="nex"><span>Remainder shortcut</span>Work with remainders instead of big numbers. 17 × 23 ÷ 5: the remainders are 2 and 3, 2 × 3 = 6, which leaves 1. So 17 × 23 leaves 1. The same works for sums.</p>` },
+    { fig: 'hcflcm', title: 'HCF and LCM', wp: true, body: `
+      <p><b>HCF</b> (highest common factor): the biggest number that divides both. <b>LCM</b> (lowest common multiple): the smallest number both divide into.</p>
+      <p>Break both into primes. HCF = what they <b>share</b>. LCM = <b>everything</b>, each prime counted once at its highest power.</p>
+      <p><b>Remember:</b> HCF is about <b>cutting</b> (ribbons of 12 m and 18 m cut into the longest equal pieces: 6 m). LCM is about <b>meeting again</b> (bells every 12 and 18 minutes ring together every 36).</p>` },
+    { title: 'HCF and LCM rules', lhs: true, wp: true, tone: 'ink', stack: [
+        ['lowest powers', 'HCF: common primes at their'],
+        ['highest powers', 'LCM: all primes at their'],
+        ['a × b', 'HCF × LCM (two numbers) ='],
+        [fr('HCF of tops', 'LCM of bottoms'), 'HCF of fractions ='],
+        [fr('LCM of tops', 'HCF of bottoms'), 'LCM of fractions ='],
+      ], body: `
+      <p class="nex"><span>Powers</span>12 = 2² × 3 and 18 = 2 × 3². HCF = 2 × 3 = 6, LCM = 2² × 3² = 36, and 6 × 36 = 216 = 12 × 18.</p>
+      <p class="nex"><span>Same remainder</span>Smallest number leaving remainder 2 when divided by 3, 4 and 5: LCM(3, 4, 5) + 2 = 62.</p>
+      <p class="nex"><span>Largest divisor, same remainder</span>Largest number dividing 43, 91 and 183 with the same remainder: the HCF of the differences 48, 92 and 140, which is 4.</p>
+      <p class="ntrap"><span>Watch out</span>HCF × LCM = a × b works for two numbers only, not three.</p>` },
   ]],
   ['Algebra', [
     { title: 'Squares', lhs: true, wp: true, tone: 'ink', stack: [

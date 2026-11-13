@@ -613,6 +613,20 @@ body.notes main { max-width: 1180px; }
 .olfig .lb { font-size: 13px; fill: currentColor; font-family: 'Source Serif 4', Georgia, serif; }
 .olfig .mk { fill: currentColor; }
 .olfig .mk.hollow { fill: none; stroke: currentColor; stroke-width: 1.5; }
+.hlfig { margin: 2px 0 18px; }
+.hlnums { display: flex; justify-content: space-between; gap: 8px; font-family: 'Source Serif 4', Georgia, serif; font-size: min(17px, 6.4cqi); margin-bottom: 10px; white-space: nowrap; }
+.hlrow { display: grid; grid-template-columns: 1fr 1.3fr 1fr; gap: 4px; }
+.hlc { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px 6px 14px; border-radius: 12px; background: color-mix(in srgb, var(--fg) 6%, transparent); }
+.hlc.mid { background: var(--fg); color: var(--card); }
+.hlc i { font-style: normal; font-size: 11px; opacity: .6; }
+.hlc b { font-family: 'Source Serif 4', Georgia, serif; font-weight: 400; font-size: min(30px, 11cqi); line-height: 1; }
+.hlbr { display: grid; grid-template-columns: 1fr 1.3fr 1fr; gap: 4px; margin-top: 8px; font-family: 'Source Serif 4', Georgia, serif; font-size: min(15px, 5.6cqi); }
+.hlbr span { height: 7px; border: 1.5px solid currentColor; border-top: 0; border-radius: 0 0 6px 6px; }
+.hlbr em { font-style: normal; text-align: center; margin-top: 4px; white-space: nowrap; }
+.hlbr.hcf span { grid-column: 2; }
+.hlbr.hcf em { grid-column: 1 / 4; grid-row: 2; }
+.hlbr.lcm span { grid-column: 1 / 4; }
+.hlbr.lcm em { grid-column: 1 / 4; grid-row: 2; }
 /* figures */
 .pgrid { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 2px; margin: 2px 0 16px; font-size: max(10px, min(15px, 2.6cqi)); font-variant-numeric: tabular-nums; }
 .pgrid span { aspect-ratio: 1; display: grid; place-items: center; border-radius: 4px; color: color-mix(in srgb, var(--fg) 32%, transparent); }

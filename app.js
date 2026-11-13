@@ -922,6 +922,35 @@ const NOTES = [
       <p>Square or cube x + 1/x and the cross terms are just numbers, because x × 1/x = 1.</p>
       <p class="nex"><span>Example</span>x + 1/x = 3: x² + 1/x² = 9 − 2 = 7, x³ + 1/x³ = 27 − 9 = 18, and x⁴ + 1/x⁴ = 7² − 2 = 47.</p>
       <p class="ntrap"><span>Watch out</span>For real x, x + 1/x is never between −2 and 2. A question saying x + 1/x = 1 has no real x.</p>` },
+    { title: 'Logarithms: what they mean', lhs: true, wp: true, tone: 'ink', stack: [
+        ['aʸ = x', 'log<sub>a</sub> x = y means'],
+        ['0', 'log<sub>a</sub> 1 ='],
+        ['1', 'log<sub>a</sub> a ='],
+        ['undefined', 'log 0, and the log of any negative number ='],
+      ], body: `
+      <p>A log asks: <b>what power of the base gives this number?</b> log<sub>2</sub> 8 = 3, because 2³ = 8.</p>
+      <p>log 1 = 0 in every base, because a⁰ = 1. log 0 has no value: no power of a positive base ever reaches 0.</p>
+      <p>“log” with no base in CAT means base 10. log 10 = 1, log 100 = 2, log 1000 = 3.</p>
+      <p class="ntrap"><span>Watch out</span>The base must be positive and not 1, and the number inside must be positive. Check this first in log equations: answers that make the inside 0 or negative are rejected.</p>` },
+    { title: 'Log rules', lhs: true, wp: true, tone: 'soft', stack: [
+        ['log m + log n', 'log (mn) ='],
+        ['log m − log n', `log ${fr('m', 'n')} =`],
+        ['n log m', 'log mⁿ ='],
+        [fr('log b', 'log a'), 'log<sub>a</sub> b = (change of base)'],
+        ['1', 'log<sub>a</sub> b × log<sub>b</sub> a ='],
+        ['x', 'a<sup>log<sub>a</sub> x</sup> ='],
+      ], body: `
+      <p class="nex"><span>Example</span>log 8 = log 2³ = 3 log 2. log 12 = log 4 + log 3 = 2 log 2 + log 3.</p>
+      <p class="nex"><span>Example</span>log<sub>9</sub> 27 = log 27 / log 9 = 3 log 3 / 2 log 3 = 3/2.</p>
+      <p class="ntrap"><span>Watch out</span>log (m + n) is not log m + log n, and (log m)ⁿ is not n log m. The rules work on products and powers inside the log only.</p>` },
+    { title: 'Log values to know (base 10)', lhs: true, wp: true, stack: [
+        ['0.301', 'log 2 ≈'],
+        ['0.477', 'log 3 ≈'],
+        ['0.699', 'log 5 ≈ (1 − log 2)'],
+        ['0.845', 'log 7 ≈'],
+      ], body: `
+      <p>Build the rest from these: log 4 = 0.602, log 6 = 0.778, log 8 = 0.903, log 9 = 0.954.</p>
+      <p class="nex"><span>Number of digits</span>Digits in N = (whole part of log N) + 1. 2¹⁰⁰: log = 100 × 0.301 = 30.1, so 2¹⁰⁰ has 31 digits.</p>` },
   ]],
   ['Averages & statistics', [
     { title: 'Measures of centre', lhs: true, wp: true, tone: 'ink', stack: [

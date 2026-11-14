@@ -877,7 +877,17 @@ const NOTES = [
       <p class="nex"><span>Powers</span>12 = 2² × 3 and 18 = 2 × 3². HCF = 2 × 3 = 6, LCM = 2² × 3² = 36, and 6 × 36 = 216 = 12 × 18.</p>
       <p class="nex"><span>Same remainder</span>Smallest number leaving remainder 2 when divided by 3, 4 and 5: LCM(3, 4, 5) + 2 = 62.</p>
       <p class="nex"><span>Largest divisor, same remainder</span>Largest number dividing 43, 91 and 183 with the same remainder: the HCF of the differences 48, 92 and 140, which is 4.</p>
-      <p class="ntrap"><span>Watch out</span>HCF × LCM = a × b works for two numbers only, not three.</p>` },
+      <p><b>Three numbers:</b> line up the prime powers. 12, 18 and 30:</p>
+      <table class="ntab nform">
+        <tr><th></th><td>2</td><td>3</td><td>5</td></tr>
+        <tr><th>12</th><td>2²</td><td>3</td><td>–</td></tr>
+        <tr><th>18</th><td>2</td><td>3²</td><td>–</td></tr>
+        <tr><th>30</th><td>2</td><td>3</td><td>5</td></tr>
+        <tr><th>HCF</th><td>2</td><td>3</td><td>–</td></tr>
+        <tr><th>LCM</th><td>2²</td><td>3²</td><td>5</td></tr>
+      </table>
+      <p>HCF takes only primes in <b>all three</b>, at the lowest power: 2 × 3 = 6. 5 is not in 12 or 18, so it is left out. LCM takes <b>every</b> prime at its highest power: 2² × 3² × 5 = 180.</p>
+      <p class="ntrap"><span>Watch out</span>HCF × LCM = a × b works for two numbers only. Here 6 × 180 = 1080, but 12 × 18 × 30 = 6480.</p>` },
   ]],
   ['Algebra', [
     { title: 'Squares', lhs: true, wp: true, tone: 'ink', stack: [

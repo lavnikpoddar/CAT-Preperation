@@ -958,8 +958,9 @@ const NOTES = [
       <p class="ntrap"><span>Watch out</span>For real x, x + 1/x is never between −2 and 2. A question saying x + 1/x = 1 has no real x.</p>` },
     { title: 'Logarithms: what they mean', lhs: true, wp: true, tone: 'ink', stack: [
         ['aʸ = x', 'log<sub>a</sub> x = y means'],
-        ['0', 'log<sub>a</sub> 1 ='],
-        ['1', 'log<sub>a</sub> a ='],
+        ['1', 'log = 0 when the number is'],
+        ['the base', 'log = 1 when the number is (10 for plain log)'],
+        ['a²', 'log<sub>a</sub> x = 2 when x is'],
         ['undefined', 'log 0, and the log of any negative number ='],
       ], body: `
       <p>A log asks: <b>what power of the base gives this number?</b> log<sub>2</sub> 8 = 3, because 2³ = 8.</p>

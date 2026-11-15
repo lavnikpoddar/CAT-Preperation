@@ -847,6 +847,10 @@ const FIGS = {
   pct: () => `<div class="pcgrid">${[['1/2', '50'], ['1/3', '33.33'], ['2/3', '66.67'], ['1/4', '25'], ['3/4', '75'], ['1/5', '20'], ['1/6', '16.67'], ['1/7', '14.29'],
       ['1/8', '12.5'], ['3/8', '37.5'], ['1/9', '11.11'], ['1/11', '9.09'], ['1/12', '8.33'], ['1/16', '6.25'], ['1/20', '5']]
       .map(([f, p]) => `<span><i>${f}</i>${p}%</span>`).join('')}</div>`,
+  dst: () => `<svg class="dstfig" viewBox="0 0 200 150" aria-label="Distance on top, speed times time below: cover the one you want">
+      <path d="M100 8 L192 142 L8 142 Z" class="tri"/><line x1="40" y1="92" x2="160" y2="92" class="tri"/><line x1="100" y1="92" x2="100" y2="142" class="tri"/>
+      <text x="100" y="72" class="big">D</text><text x="64" y="128" class="big">S</text><text x="136" y="128" class="big">T</text><text x="100" y="124" class="x">×</text>
+    </svg><div class="dstcap">Cover the one you want: D = S × T, S = D ÷ T, T = D ÷ S</div>`,
   sixk: () => `<div class="sixk">${[1, 2, 3, 4, 5, 6].map(r => `<span class="${r === 1 || r === 5 ? 'on' : ''}"><b>6k${r === 6 ? '' : ' + ' + r}</b>${r === 1 || r === 5 ? 'primes live here' : r === 6 ? '÷ 6' : r === 3 ? '÷ 3' : '÷ 2'}</span>`).join('')}</div>`,
 };
 const NOTES = [
@@ -1145,6 +1149,56 @@ const NOTES = [
       ], body: `
       <p class="nex"><span>Same selling price</span>Two items sold at the same price, one at 10% profit and one at 10% loss: overall a 1% loss, never break-even.</p>
       <p class="nex"><span>False weight</span>A shopkeeper gives 900 g for every 1 kg at cost price: profit = 100/900 = 11.11%.</p>` },
+  ]],
+  ['Time, speed & distance', [
+    { fig: 'dst', title: 'Distance = speed × time', wp: true, body: `
+      <p><b>Units:</b> km/h to m/s, multiply by 5/18. m/s to km/h, multiply by 18/5. 72 km/h = 20 m/s.</p>
+      <p>With the distance fixed, speed and time trade off: twice the speed, half the time. Speeds in ratio a : b mean times in ratio b : a.</p>
+      <p class="ntrap"><span>Watch out</span>Convert units before you calculate. Trains are usually given in km/h with lengths in metres.</p>` },
+    { title: 'Relative speed', lhs: true, wp: true, tone: 'ink', stack: [
+        ['S₁ + S₂', 'moving towards each other (or opposite ways):'],
+        ['S₁ − S₂', 'moving the same way:'],
+        [fr('distance between them', 'relative speed'), 'time to meet or catch up ='],
+      ], body: `
+      <p>Treat one as standing still and give the other the relative speed.</p>
+      <p class="nex"><span>Meeting</span>Two people 60 km apart walk towards each other at 4 and 6 km/h: they meet after 60/10 = 6 hours.</p>
+      <p class="nex"><span>Chasing</span>A thief has a 1 km head start at 8 km/h; a police car follows at 10 km/h: caught after 1/2 hour.</p>` },
+    { title: 'Trains', lhs: true, wp: true, tone: 'soft', stack: [
+        [fr('train length', 'speed'), 'passing a pole or a person:'],
+        [fr('train + platform length', 'speed'), 'passing a platform or bridge:'],
+        [fr('L₁ + L₂', 'relative speed'), 'two trains passing each other:'],
+      ], body: `
+      <p>The train has to cover its own length too.</p>
+      <p class="nex"><span>Example</span>A 200 m train at 72 km/h (20 m/s) passes a pole in 200/20 = 10 s, and a 300 m platform in 500/20 = 25 s.</p>` },
+    { title: 'Average speed', lhs: true, wp: true, stack: [
+        [fr('total distance', 'total time'), 'always:'],
+        [fr('2xy', 'x + y'), 'equal distances at x and y:'],
+        [fr('x + y', '2'), 'equal times at x and y:'],
+      ], body: `
+      <p class="nex"><span>Example</span>To a city at 40 km/h and back at 60 km/h: 2 × 40 × 60/100 = 48 km/h, not 50.</p>
+      <p class="ntrap"><span>Watch out</span>Averaging the two speeds only works when the <b>times</b> are equal. For equal distances, use 2xy/(x + y).</p>` },
+    { title: 'Boats and streams', lhs: true, wp: true, tone: 'ink', stack: [
+        ['b + s', 'downstream (with the current):'],
+        ['b − s', 'upstream (against the current):'],
+        [fr('down + up', '2'), 'speed of the boat in still water ='],
+        [fr('down − up', '2'), 'speed of the stream ='],
+      ], body: `
+      <p class="nex"><span>Example</span>Downstream 15 km/h, upstream 9 km/h: the boat does 12 km/h in still water and the stream flows at 3 km/h.</p>` },
+    { title: 'Circular tracks and meeting times', lhs: true, wp: true, tone: 'soft', stack: [
+        [fr('track length', 'S₁ + S₂'), 'first meeting, running opposite ways:'],
+        [fr('track length', 'S₁ − S₂'), 'first meeting, running the same way:'],
+        ['LCM of lap times', 'meeting again at the start:'],
+        ['√t₂ : √t₁', 'after meeting, they need t₁ and t₂ to finish: speed ratio ='],
+      ], body: `
+      <p class="nex"><span>Example</span>After meeting, one takes 4 hours and the other 9 hours to reach the far ends: speeds are in ratio √9 : √4 = 3 : 2.</p>` },
+    { title: 'Time and work (same idea)', lhs: true, wp: true, stack: [
+        ['rate × time', 'work ='],
+        [fr('1', 'a'), 'A finishes in a days, so A does per day:'],
+        [fr('ab', 'a + b'), 'A and B together finish in (days) ='],
+      ], body: `
+      <p>Work is distance, rate is speed. Add rates, not days.</p>
+      <p class="nex"><span>Example</span>A takes 10 days and B takes 15: together 10 × 15/25 = 6 days.</p>
+      <p>Pipes and cisterns work the same way: a leak or outlet has a negative rate.</p>` },
   ]],
 ];
 function renderNotes() {

@@ -1032,14 +1032,39 @@ const NOTES = [
       <p class="nex"><span>Example</span>log 8 = log 2³ = 3 log 2. log 12 = log 4 + log 3 = 2 log 2 + log 3.</p>
       <p class="nex"><span>Example</span>log<sub>9</sub> 27 = log 27 / log 9 = 3 log 3 / 2 log 3 = 3/2.</p>
       <p class="ntrap"><span>Watch out</span>log (m + n) is not log m + log n, and (log m)ⁿ is not n log m. The rules work on products and powers inside the log only.</p>` },
-    { title: 'Log values to know (base 10)', lhs: true, wp: true, stack: [
-        ['0.301', 'log 2 ≈'],
-        ['0.477', 'log 3 ≈'],
-        ['0.699', 'log 5 ≈ (1 − log 2)'],
-        ['0.845', 'log 7 ≈'],
+    { title: 'Arithmetic progression (AP): add the same d', lhs: true, wp: true, tone: 'ink', stack: [
+        ['a + (n − 1)d', 'n-th term ='],
+        [`${fr('n', '2')} [2a + (n − 1)d]`, 'sum of n terms ='],
+        [`${fr('n', '2')} (first + last)`, 'or, faster ='],
       ], body: `
-      <p>Build the rest from these: log 4 = 0.602, log 6 = 0.778, log 8 = 0.903, log 9 = 0.954.</p>
-      <p class="nex"><span>Number of digits</span>Digits in N = (whole part of log N) + 1. 2¹⁰⁰: log = 100 × 0.301 = 30.1, so 2¹⁰⁰ has 31 digits.</p>` },
+      <p>a = first term, d = common difference: 3, 7, 11, 15… has a = 3, d = 4.</p>
+      <p class="nex"><span>Example</span>3 + 7 + 11 + … for 20 terms: last = 3 + 19 × 4 = 79, sum = 20/2 × (3 + 79) = 820.</p>
+      <p>Three numbers in AP: write them as a − d, a, a + d. The middle one is their average.</p>` },
+    { title: 'Geometric progression (GP): multiply by the same r', lhs: true, wp: true, tone: 'soft', stack: [
+        ['a × rⁿ⁻¹', 'n-th term ='],
+        [`${fr('a(rⁿ − 1)', 'r − 1')}`, 'sum of n terms ='],
+        [`${fr('a', '1 − r')}`, 'sum forever, when r is between −1 and 1 ='],
+      ], body: `
+      <p>a = first term, r = common ratio: 2, 6, 18, 54… has a = 2, r = 3. Sum of these four = 2(3⁴ − 1)/2 = 80.</p>
+      <p class="nex"><span>Growth questions</span>One bacterium makes 8, but only half of each generation reproduces, so each generation is 8 × ½ = 4 times the last: r = 4. The 7th generation is x × 4⁶ = 4096x. If that is 4096 million, the 1st generation is 1 million.</p>
+      <p class="nex"><span>Sum forever</span>1 + ½ + ¼ + … = 1/(1 − ½) = 2.</p>
+      <p class="ntrap"><span>Watch out</span>A GP has a common <b>ratio</b>, not a common difference. (The book's solution to Percentage Q15 says “difference”; it means ratio.)</p>` },
+    { title: 'Which progression is it?', lhs: true, wp: true, stack: [
+        ['AP', 'same gap between terms:'],
+        ['GP', 'same ratio between terms:'],
+        ['HP', 'the reciprocals (1/x) are in AP:'],
+      ], body: `
+      <p>2, 5, 8, 11 is an AP (+3). 3, 6, 12, 24 is a GP (×2). 1, ½, ⅓, ¼ is an HP, because 1, 2, 3, 4 is an AP.</p>
+      <p>“Increases by a fixed amount” → AP. “Increases by a fixed percentage” or “doubles” → GP. Compound interest and population growth are GPs.</p>` },
+    { title: 'AM, GM, HM of two numbers', lhs: true, wp: true, tone: 'soft', stack: [
+        [fr('a + b', '2'), 'arithmetic mean (AM) ='],
+        ['√ab', 'geometric mean (GM) ='],
+        [fr('2ab', 'a + b'), 'harmonic mean (HM) ='],
+        ['AM ≥ GM ≥ HM', 'always, for positive numbers:'],
+      ], body: `
+      <p class="nex"><span>Example</span>4 and 16: AM = 10, GM = 8, HM = 6.4. And GM² = AM × HM: 64 = 10 × 6.4.</p>
+      <p>AM ≥ GM is the tool for “minimum value” questions: x + 1/x ≥ 2 for positive x, because the AM of x and 1/x is at least their GM, which is 1.</p>
+      <p>HM is the average speed for equal distances: 40 km/h out and 60 km/h back average 48 km/h, not 50.</p>` },
   ]],
   ['Averages & statistics', [
     { title: 'Measures of centre', lhs: true, wp: true, tone: 'ink', stack: [

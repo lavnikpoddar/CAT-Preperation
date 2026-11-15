@@ -422,6 +422,8 @@ function answerHTML(q, a) {
     // options defined once in the directions (Data Sufficiency sets etc.)
     const so = sharedOptions(q);
     if (so) return `<div class="opts">${so.map((t, i) => `<button class="opt ${cls(LETTERS[i])}" data-opt="${LETTERS[i]}" ${dis}><span class="l">${LETTERS[i].toUpperCase()}</span><span class="ot">${esc(t)}</span></button>`).join('')}</div>`;
+    // option text is known but there is no separate crop per option (questions split by hand)
+    if (useText() && q.tx && q.tx.opts) return `<div class="opts">${q.tx.opts.map((t, i) => `<button class="opt ${cls(LETTERS[i])}" data-opt="${LETTERS[i]}" ${dis}><span class="l">${LETTERS[i].toUpperCase()}</span><span class="ot">${esc(t)}</span></button>`).join('')}</div>`;
     // options are in the question image but could not be split out
     return `<div class="letters">${LETTERS.slice(0, 4).map(o => `<button class="opt ${cls(o)}" data-opt="${o}" ${dis}>${o}</button>`).join('')}</div>`;
   }

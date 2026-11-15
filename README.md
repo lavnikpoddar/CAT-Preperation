@@ -66,6 +66,14 @@ python3 tools/drawings.py "Face to Face CAT Topicwise Solved Papers.pdf" drawing
 python3 tools/papers.py papers.xml data/questions.json --pages pages --drawings drawings_papers.json
 ```
 
+## Data repairs
+
+`data/questions.json` is built by `tools/extract.py`. Three scripts patch faults in its output and are safe to run twice. Run them, in this order, after any rebuild (each takes the book PDF; add `--write` to save):
+
+1. `tools/fix_passages.py` – in Reading Comprehension most passages start with only a "PASSAGE n" heading, which the extractor did not treat as a boundary. The passage became the tail of the previous question and the next questions kept the passage before. This cuts those questions at the heading and re-attaches the questions.
+2. `tools/fix_columns.py` – re-reads the text of questions whose crop spans both columns (the transcriber now reads such crops column by column), splits Percentage Q21 into the three questions it really is, and drops two section headings captured as question tails.
+3. `tools/errata.py` – misprints in the book itself.
+
 ## Private use: password and your own reading texts
 
 - **Password (not active yet).** `tools/gate/worker.js` is written but switched off. To turn it on, move it to the root as `worker.js`, add `worker.js` to `.assetsignore` (keep the lines already there: they stop `.git` and the PDF from being uploaded), and in `wrangler.jsonc` add `"main": "worker.js"` plus `"binding": "ASSETS"` and `"run_worker_first": true` under `assets`.

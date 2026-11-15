@@ -42,12 +42,41 @@ def words_in(words, rect):
             and (w[1] + w[3]) / 2 >= y0 and (w[1] + w[3]) / 2 < y1]
 
 
+def column_split(words, rect):
+    """x of an empty gutter inside a full-width rect, or None.
+
+    When a question fills the rest of the left column and the top of the right one, extract.py
+    merges both into one full-width rect. Read straight across, its lines interleave the two
+    columns. A gutter is a vertical band no word touches, near the middle of the page, with
+    text on both sides. Genuine full-width prose has no such band."""
+    p, x0, y0, x1, y1 = rect
+    if x1 - x0 <= 330 or len(words) < 4:
+        return None
+    spans = sorted((w[0], w[2]) for w in words)
+    merged = [list(spans[0])]
+    for a, b in spans[1:]:
+        if a <= merged[-1][1] + 0.5:
+            merged[-1][1] = max(merged[-1][1], b)
+        else:
+            merged.append([a, b])
+    best = None
+    for (_, e), (n, _) in zip(merged, merged[1:]):
+        gap, mid = n - e, (e + n) / 2
+        if gap >= 9 and 250 <= mid <= 365 and (best is None or gap > best[0]):
+            best = (gap, mid)
+    return best[1] if best else None
+
+
 def region_lines(words_by_page, rects):
     out = []
     for ri, r in enumerate(rects):
-        for ln in _lines(words_in(words_by_page[r[0]], r)):
-            ln["ri"] = ri
-            out.append(ln)
+        ws = words_in(words_by_page[r[0]], r)
+        gx = column_split(ws, r)
+        parts = [ws] if gx is None else [[w for w in ws if (w[0] + w[2]) / 2 < gx], [w for w in ws if (w[0] + w[2]) / 2 >= gx]]
+        for ci, part in enumerate(parts):
+            for ln in _lines(part):
+                ln["ri"] = ri + ci / 2          # each column is its own run of lines
+                out.append(ln)
     return out
 
 
@@ -120,7 +149,7 @@ def paragraphs(lines, strip_marker=False):
             hanging = LIST_START.match(prev_tok) or MARKER.match(prev_tok)
             if (gap > 1.45 * lead or LIST_START.match(first_tok) or MARKER.match(first_tok)
                     or first_tok in ("Statement", "Statements", "PASSAGE")
-                    or (ln["x0"] > prev["x0"] + 6 and ln["x0"] > left + 6 and not hanging)):
+                    or (ln["ri"] == prev["ri"] and ln["x0"] > prev["x0"] + 6 and ln["x0"] > left + 6 and not hanging)):
                 new_para = True
         if new_para:
             paras.append(cur)

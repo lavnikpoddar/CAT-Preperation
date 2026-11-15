@@ -658,3 +658,32 @@ body.notes main { max-width: 1180px; }
   .nplus { width: 18px; height: 18px; }
   .nb:has(.nin[open]) { grid-column: span 2; }
 }
+
+/* ---------- study plan ---------- */
+.plan { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 18px 20px 8px; margin: 0 0 18px; }
+.planh { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+.planh > span:first-child { font-size: 15px; font-weight: 600; }
+.planh .muted { font-size: 12.5px; }
+.pbar { height: 4px; border-radius: 4px; background: var(--soft); margin-bottom: 8px; overflow: hidden; }
+.pbar i { display: block; height: 100%; background: var(--fg); }
+.pday { display: grid; grid-template-columns: 72px 1fr; gap: 12px; align-items: start; padding: 10px 0; border-top: 1px solid var(--line); }
+.pbar + .pday { border-top: 0; }
+.pdate { display: flex; flex-direction: column; gap: 2px; font-size: 13px; padding-top: 3px; }
+.pdate b { font-weight: 500; }
+.pdate span { font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--card); background: var(--fg); border-radius: 999px; padding: 1px 7px; align-self: flex-start; }
+.pslots { display: flex; flex-wrap: wrap; gap: 6px 16px; }
+.pslot { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; }
+.pslot .tickbtn { width: 22px; height: 22px; flex: none; }
+.pslot .tickbtn .ic { width: 13px; height: 13px; }
+.pslot a:hover { text-decoration: underline; text-underline-offset: 3px; }
+.pslot.small { color: var(--muted); font-size: 13px; }
+.pslot.done a { color: var(--muted); text-decoration: line-through; }
+.pslot.done .tickbtn { background: var(--fg); border-color: var(--fg); color: var(--card); }
+.pday.past { opacity: .55; }
+.pday.today { margin: 0 -12px; padding: 12px; border-radius: 12px; background: var(--soft); border-top-color: transparent; }
+.pday.today + .pday { border-top-color: transparent; }
+@media (max-width: 600px) {
+  .plan { padding: 14px 14px 6px; }
+  .pday { grid-template-columns: 52px 1fr; gap: 8px; }
+  .pslots { flex-direction: column; gap: 8px; }
+}

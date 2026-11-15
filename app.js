@@ -155,6 +155,57 @@ function route() {
 }
 
 /* ---------- dashboard ---------- */
+/* ---------- study plan (Overview) ---------- */
+// [date, [label, link], ...slots]; every topic day also has one RC passage.
+const PLAN = [
+  ['2026-11-15', ['Percentage + Profit & Loss', '#/ch/c02'], ['Data Interpretation', '#/ch/c15']],
+  ['2026-11-16', ['Interest + Averages', '#/ch/c05'], ['Logical Reasoning', '#/ch/c14']],
+  ['2026-11-17', ['Time, Speed & Distance', '#/ch/c04'], ['Analytical Reasoning', '#/ch/c13']],
+  ['2026-11-18', ['Algebra', '#/ch/c08'], ['Reading Comprehension', '#/ch/c18']],
+  ['2026-11-19', ['Number System', '#/ch/c01'], ['English Usage', '#/ch/c16']],
+  ['2026-11-20', ['Geometry', '#/ch/c07'], ['DILR mixed sets', '#/sec/DILR']],
+  ['2026-11-21', ['Mensuration', '#/ch/c06'], ['Functions', '#/ch/c10']],
+  ['2026-11-22', ['Permutation & Combination', '#/ch/c09'], ['Probability', '#/ch/c09']],
+  ['2026-11-23', ['Miscellaneous', '#/ch/c11'], ['Data Sufficiency', '#/ch/c12']],
+  ['2026-11-24', ['Full paper', '#/sec/PAPERS'], ['Review every mistake', '#/sec/PAPERS']],
+  ['2026-11-25', ['Full paper', '#/sec/PAPERS'], ['Review every mistake', '#/sec/PAPERS']],
+  ['2026-11-26', ['Full paper', '#/sec/PAPERS'], ['Review every mistake', '#/sec/PAPERS']],
+  ['2026-11-27', ['Full paper', '#/sec/PAPERS'], ['Review every mistake', '#/sec/PAPERS']],
+  ['2026-11-28', ['One paper, lightly', '#/sec/PAPERS'], ['Revise Notes', '#/notes']],
+];
+const ymd = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+function planHTML() {
+  const done = S.progress.plan || {};
+  const today = ymd(new Date());
+  const rows = PLAN.map(([date, ...slots], i) => {
+    const topicDay = i < 9;
+    const all = topicDay ? [...slots, ['One RC passage', '#/ch/c18']] : slots;
+    const d = new Date(date + 'T00:00:00');
+    const tag = date === today ? 'today' : date < today ? 'past' : '';
+    const label = d.toLocaleDateString('en-GB', { weekday: 'short' }) + ' ' + d.getDate();
+    return `<div class="pday ${tag}">
+      <div class="pdate"><b>${label}</b>${tag === 'today' ? '<span>Today</span>' : ''}</div>
+      <div class="pslots">${all.map(([t, href], k) => {
+        const key = date + ':' + k, on = !!done[key];
+        return `<span class="pslot ${on ? 'done' : ''} ${k === 2 ? 'small' : ''}"><button class="tickbtn" type="button" data-plan="${key}" aria-pressed="${on}" aria-label="${on ? 'Mark not done' : 'Mark done'}">${icon('tick')}</button><a href="${href}">${esc(t)}</a></span>`;
+      }).join('')}</div>
+    </div>`;
+  }).join('');
+  const total = PLAN.reduce((n, [, ...sl], i) => n + sl.length + (i < 9 ? 1 : 0), 0);
+  const ticked = Object.keys(done).filter(k => done[k]).length;
+  return `<section class="plan">
+    <div class="planh"><span>Plan</span><span class="muted">Mornings Quant, afternoons DILR or VARC. Last five days: papers.</span></div>
+    <div class="pbar"><i style="width:${Math.round(100 * ticked / total)}%"></i></div>
+    ${rows}
+  </section>`;
+}
+function bindPlan() {
+  document.querySelectorAll('[data-plan]').forEach(b => b.onclick = () => {
+    const p = S.progress.plan || (S.progress.plan = {}); const k = b.dataset.plan;
+    if (p[k]) delete p[k]; else p[k] = Date.now();
+    save(); renderDashboard();
+  });
+}
 function renderDashboard() {
   const last = S.progress.last && S.byId.get(S.progress.last);
   const exam = new Date((S.settings.examDate || '2026-11-29') + 'T00:00:00');
@@ -165,7 +216,7 @@ function renderDashboard() {
     <h1>${days > 1 ? days + ' days to CAT' : days === 1 ? 'CAT is tomorrow' : days === 0 ? 'CAT is today' : 'CAT was ' + (-days) + ' days ago'}</h1>
     <p class="lead">${when}</p>
     ${last ? `<a class="resume" href="#/q/${last.id}"><span class="play">${icon('play')}</span><span class="rt"><small>Resume</small>${esc(chapter(last.ch).title)} · Q${last.n}</span></a>` : ''}
-  </div>`;
+  </div>` + planHTML();
   for (const [sec, name] of Object.entries(S.data.sections)) {
     if (sec === 'PAPERS') continue;
     const st = stats(S.data.questions.filter(q => q.sec === sec));
@@ -175,6 +226,7 @@ function renderDashboard() {
     </a>`;
   }
   app().innerHTML = html;
+  bindPlan();
 }
 const backBtn = (href, label) => `<a class="backbtn" href="${href}" title="Back to ${esc(label)}"><span class="bb">${icon('chev')}</span><span>${esc(label)}</span></a>`;
 function metricsHTML(st, t) {
